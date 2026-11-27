@@ -97,6 +97,21 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc
 .tpill{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12.5px;color:var(--ink2)}
 .tpill b{color:var(--ink);font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tpill .cv{font-size:10px;color:var(--ink3)}
+.tgo{margin-left:auto;display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-size:12.5px;color:var(--ink);font-weight:600}
+.tgo .chev{color:var(--ink3);font-weight:400;font-size:14px;line-height:1}
+
+/* ---- 日记本 ---- */
+.dname{font-size:23px;font-weight:700;letter-spacing:-.5px;margin:0 0 3px;word-break:break-all}
+.dmeta{font-size:12.5px;color:var(--ink3);margin-bottom:14px}
+.dpara{margin:0 0 16px}
+.dtime{font-size:11.5px;color:var(--ink3);margin-bottom:5px;letter-spacing:.2px}
+.dtext{font-size:15.5px;line-height:1.85;letter-spacing:.1px;color:var(--ink);word-break:break-word}
+.dk{display:inline-block;font-size:11px;line-height:1.5;padding:1px 7px;border-radius:6px;margin-left:7px;vertical-align:1px;font-weight:600;white-space:nowrap}
+.dmoney{font-weight:700;margin-left:8px;white-space:nowrap}
+.note .meta .tg{font-size:10.5px;padding:2px 7px;border-radius:999px;background:#FFF1E8;color:#C2410C;font-weight:600}
+/* 写完的输入条常驻在导航栏上方，日记再长也不用往上翻 */
+#v-topic{padding-bottom:84px}
+.saydock{position:fixed;left:0;right:0;bottom:var(--navh,61px);z-index:35;background:var(--bg);padding:9px 16px 9px;border-top:1px solid var(--line)}
 .dg{white-space:pre-wrap;font-size:13px;line-height:1.85;background:#F7F8FA;border:1px solid var(--line);border-radius:14px;padding:14px;max-height:46vh;overflow:auto;font-family:ui-monospace,Menlo,monospace}
 .smp{
   flex:0 0 auto;font-size:12.5px;color:var(--ink2);background:#fff;border:1px solid var(--line);
@@ -297,7 +312,8 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
 /* 弹层开着的时候，提示跑到屏幕上方，别压住弹层底部的按钮 */
 #toast.up{bottom:auto;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-14px)}
 #toast.up.on{transform:translate(-50%,0)}
-#toast .act{color:#FFB08A;font-weight:700;font-size:13.5px;white-space:nowrap}
+#toastMsg{flex:0 1 auto;min-width:0;line-height:1.45}
+#toast .act{flex:0 0 auto;color:#FFB08A;font-weight:700;font-size:13.5px;white-space:nowrap}
 .hint{font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.7}
 </style>
 </head>
@@ -320,8 +336,9 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
         <button class="tpill" id="topicBtn">
           记到 <b id="topicName">日常</b><span class="cv">▾</span>
         </button>
-        <span class="pmeta" id="topicHint"></span>
+        <button class="tgo" id="diaryGo">日记本 <span class="chev">›</span></button>
       </div>
+      <div class="pmeta" id="topicHint" style="margin:-4px 2px 10px"></div>
       <div class="card">
         <div class="micwrap">
           <button class="mic" id="mic" aria-label="按住说话">
@@ -443,27 +460,35 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
       <div id="kbList"></div>
     </section>
 
-    <!-- 合集 / 旅行手账 -->
+    <!-- 日记本（原 合集 / 旅行手账） -->
     <section class="view" id="v-topic">
-      <div class="back" data-back="me">
+      <div class="back" data-back="home">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
-        旅行 / 合集
+        返回
       </div>
+      <div class="dname" id="dName">日常</div>
+      <div class="dmeta" id="dMeta"></div>
       <div class="filters" id="topicTabs"></div>
-      <div class="saybar">
-        <input id="tpSayIn" placeholder="在这儿说一句，直接进当前合集" enterkeyhint="done" autocomplete="off">
-        <button class="tmic" id="tpSayMic" aria-label="语音记进合集">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
-          </svg>
-        </button>
-        <button class="sgo" id="tpSayGo">记</button>
-      </div>
-      <div style="display:flex;gap:8px;margin:2px 0 14px">
-        <button class="smp" id="topicGen" style="flex:1;justify-content:center;padding:11px 0">整理成一篇 →</button>
-        <button class="smp" id="topicNew" style="flex:0 0 auto;padding:11px 14px">＋ 新建</button>
+      <div class="h2" style="margin:2px 4px 10px;display:flex;justify-content:space-between;align-items:baseline">
+        <span id="dViewName">正文</span>
+        <span class="link" id="dViewSwitch">按类别看</span>
       </div>
       <div id="topicList"></div>
+      <div style="display:flex;gap:8px;margin:6px 0 10px">
+        <button class="smp" id="topicGen" style="flex:1;justify-content:center;padding:11px 0">整理成一篇 →</button>
+        <button class="smp" id="topicNew" style="flex:0 0 auto;padding:11px 14px">＋ 新开一篇</button>
+      </div>
+      <div class="saydock">
+        <div class="saybar" style="margin-bottom:0">
+          <input id="tpSayIn" placeholder="接着说一段…" enterkeyhint="done" autocomplete="off">
+          <button class="tmic" id="tpSayMic" aria-label="语音写日记">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
+            </svg>
+          </button>
+          <button class="sgo" id="tpSayGo">写</button>
+        </div>
+      </div>
     </section>
 
     <!-- 时间线 -->
@@ -569,12 +594,16 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
           <div><div class="rl">语音来源</div><div class="rd" id="voiceDesc">浏览器听写 · 可能联网</div></div>
           <button class="chip" id="voiceSwitch" style="background:#F4F6F9;color:#6C7380">切换</button>
         </div>
+        <div class="row">
+          <div><div class="rl">能不能直接录音</div><div class="rd">点一下当场实测，不靠猜</div></div>
+          <button class="chip" id="pvBtn" style="background:#F4F6F9;color:#6C7380">试一下</button>
+        </div>
       </div>
 
-      <div class="h2">旅行 / 合集</div>
+      <div class="h2">日记本</div>
       <div class="card" style="padding:6px 16px">
         <div class="row" id="rowTopic">
-          <div><div class="rl">旅行手账、外出想法</div><div class="rd" id="topicDesc">把一段时间的想法归到一起，最后整理成一篇</div></div>
+          <div><div class="rl">旅行 / 日常，都写成一篇</div><div class="rd" id="topicDesc">说多少段都在同一篇里，自动按"吃的 / 看的 / 花销"分类</div></div>
           <button class="chip" id="topicGo" style="background:#F4F6F9;color:#6C7380">打开</button>
         </div>
       </div>
@@ -634,12 +663,12 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
         <div class="privacy">
           这个应用是<b>单文件、无服务器</b>的。你的每一条记录、每一张截图，只存在这台手机的本地存储里，没有任何账号、没有任何同步。
           <br><br>
-          页面用 CSP 锁死了对外连接：<b>除了查天气、拉 AI 快讯和兜底翻译的那 4 个公开接口，其他任何域名都发不出去</b>。可以点上面的「检测」亲自验证。
+          这一版把对外连接<b>彻底封死</b>了：页面里写着 <b>connect-src 'none'</b>，浏览器层面拒绝一切外发请求——应用连"想发"的资格都没有，不是"我保证不发"。可以点上面的「隐私自检」当场验证。
           <br><br>
-          天气只发送经纬度（不含定位精度信息、不含你是谁）；快讯只从公开 RSS 拉标题，<b>不携带任何你的内容</b>。<b>你的记录永远不会被上传。</b>
+          所以<b>这一版没有天气、也没有 AI 快讯</b>：它们本来就要联网才能取到内容，网一断就是空的。这是"安全版"的代价，也是它安全的原因。
           <br><br>
           需要如实告诉你两件事：<br>
-          1）<b>浏览器听写</b>由系统/浏览器提供，音频是否上传取决于你的手机厂商，应用本身无法控制；想要彻底不出本机，请切到「键盘语音」或改用原生版。<br>
+          1）<b>浏览器听写</b>由系统/浏览器提供，音频是否上传取决于你的手机厂商，应用本身无法控制；想要彻底不出本机，请切到「键盘语音」（iOS 自带听写可离线）。<br>
           2）<b>后台提醒</b>在网页关闭后无法触发（那需要推送服务器）。要绝对准时，请把提醒导出到系统日历，或用原生版。
         </div>
       </div>
@@ -714,7 +743,7 @@ var KW = {
 
 var RKEY = "lifeKeeper.v1";
 var VERKEY = "lifeKeeper.appVer";
-var APP_VER = "2.2.1";
+var APP_VER = "2.3.1";
 var DATA_VER = 3;
 /* 安全版：CSP 里 connect-src 已经是 'none'，浏览器层面禁止一切外发请求。
    这里再加一层代码级的闸，双保险——就算以后 CSP 被谁放宽了，代码也不会去发。
@@ -761,7 +790,8 @@ function mcat(key) { return MCAT[key] || MCAT.other; }
 
 var DB = null;
 var state = { tab: "home", filter: "all", q: "", sheetId: null, pinBuf: "", pinMode: "unlock", toastTimer: null,
-              mPeriod: "month", kbQ: "", kbTag: "", topicTopic: "", topicTouched: false };
+              mPeriod: "month", kbQ: "", kbTag: "", topicTopic: "", topicTouched: false,
+              topicView: "time" };
 
 /* ================== 工具 ================== */
 function $(s, r) { return (r || document).querySelector(s); }
@@ -1358,7 +1388,8 @@ function noteHtml(n) {
     (n.imgData
       ? '<img class="thumb" alt="截图" src="' + n.imgData + '">'
       : (n.imgId ? '<div data-img="' + n.imgId + '"><div class="thumb" style="height:110px"></div></div>' : "")) +
-    '<div class="meta">' + tagHtml(n.c) + dueH +
+    '<div class="meta">' + tagHtml(n.c) +
+    (n.tp ? '<span class="tg">' + esc(n.tp) + "</span>" : "") + dueH +
     "<span>" + fmtStamp(n.ts) + "</span></div></div></div>";
 }
 
@@ -1369,6 +1400,7 @@ var HEAD = {
   kb: function () { return ["知识库", "截图、网址、想法，都在这里"]; },
   time: function () { return ["全部记录", "你说过的每一句都在这里"]; },
   feed: function () { return ["联网与隐私", "这一版不发任何请求"]; },
+  topic: function () { return ["日记本", "说多少段，都在这一篇里"]; },
   remind: function () { return ["周期事务", "到点的事，我盯着"]; },
   me: function () { return ["我的", "数据只存在这台设备里"]; }
 };
@@ -1708,15 +1740,82 @@ function todoCard(t) {
     "</div>";
 }
 
-/* 合集里的一笔账（样式跟账本明细一致） */
-function moneyCard(x) {
-  var m = mcat(x.cat);
-  return '<div class="card" style="padding:0 14px;margin-bottom:10px"><div class="mrow" data-m="' + x.id + '">' +
-    '<div class="ci" style="background:' + m.bg + ";color:" + m.c + '">' + m.ic + "</div>" +
-    '<div class="bt"><div class="t1">' + esc(x.t || m.n) + '</div>' +
-    '<div class="t2">' + m.n + " · " + hhmm(x.ts) + "</div></div>" +
-    '<div class="amt' + (x.dir === "in" ? " in" : "") + '">' + (x.dir === "in" ? "+" : "−") + "¥" + fmtMoney(x.amt) + "</div>" +
-    "</div></div>";
+/* ================== 日记本：自动分类 + 文章式排版 ================== */
+var DKINDS = {
+  eat:   { n: "吃的", c: "#B45309", bg: "#FEF3C7" },
+  scene: { n: "看的", c: "#0F6E56", bg: "#E1F5EE" },
+  money: { n: "花销", c: "#1D4ED8", bg: "#DBEAFE" },
+  todo:  { n: "要做", c: "#2B58C8", bg: "#E8F0FF" },
+  other: { n: "其他", c: "#6C7380", bg: "#F1F3F6" }
+};
+var DK_ORDER = ["eat", "scene", "money", "todo", "other"];
+
+/* 认不出的不硬猜，一律丢"其他" */
+var EAT_RE = /(吃|喝|餐|饭|面|粉|汤|咖啡|奶茶|奶|小吃|甜点|火锅|烧烤|烤|串|饼|包子|粥|味|好喝|难吃|好吃|店|摊|果|酒|零嘴)/;
+var SCENE_RE = /(景|山|湖|江|河|寺|庙|塔|桥|公园|巷|街|门|楼|博物馆|展览|艺术|拍|照|日落|日出|夜景|人多|排队|好看|美|老|古|石|树|花|云|天气|走|逛|看|坐|住|逛)/;
+
+function diaryKind(text) {
+  var t = String(text || "");
+  if (EAT_RE.test(t)) return "eat";
+  if (SCENE_RE.test(t)) return "scene";
+  return "other";
+}
+
+function diaryKindOf(it) {
+  if (it.k === "money") return "money";
+  if (it.k === "todo") return "todo";
+  return diaryKind(it.o.t);
+}
+
+/* 这一篇里都有哪些内容，按时间正序（越往后越新，像日记一样往下长） */
+function diaryItems(name) {
+  var arr = [];
+  DB.notes.forEach(function (n) {
+    if (name ? n.tp === name : !n.tp) arr.push({ ts: n.ts, k: "note", o: n });
+  });
+  if (name) {
+    DB.money.forEach(function (m) { if (m.tp === name) arr.push({ ts: m.ts, k: "money", o: m }); });
+    DB.todos.forEach(function (t) { if (t.tp === name) arr.push({ ts: t.ts, k: "todo", o: t }); });
+  }
+  arr.sort(function (a, b) { return a.ts - b.ts; });
+  return arr;
+}
+
+function dPara(it) {
+  var kd = DKINDS[diaryKindOf(it)];
+  var body;
+  if (it.k === "note") {
+    body = esc(it.o.t);
+    if (it.o.imgData) body += '<img class="thumb" alt="截图" src="' + it.o.imgData + '" style="margin-top:8px;border-radius:12px">';
+    else if (it.o.imgId) body += '<div data-img="' + it.o.imgId + '"><div class="thumb" style="height:120px;margin-top:8px"></div></div>';
+  } else if (it.k === "money") {
+    var m = mcat(it.o.cat);
+    body = esc(it.o.t || m.n) + '<span class="dmoney" style="color:' +
+      (it.o.dir === "in" ? "#047857" : "#15181D") + '">' +
+      (it.o.dir === "in" ? "+" : "−") + "¥" + fmtMoney(it.o.amt) + "</span>";
+  } else {
+    body = esc(it.o.t) + '<span class="dk" style="background:' + (it.o.done ? "#E9F7EF" : "#E8F0FF") +
+      ";color:" + (it.o.done ? "#0F9D58" : "#2B58C8") + '">' + (it.o.done ? "已完成" : "待办") + "</span>";
+  }
+  return '<div class="dpara"><div class="dtime">' + hhmm(it.ts) + " · " + kd.n +
+    '</div><div class="dtext">' + body + "</div></div>";
+}
+
+function renderDiaryByKind(items) {
+  var g = {};
+  items.forEach(function (it) {
+    var k = diaryKindOf(it);
+    (g[k] || (g[k] = [])).push(it);
+  });
+  var html = "";
+  DK_ORDER.forEach(function (k) {
+    var arr = g[k];
+    if (!arr || !arr.length) return;
+    html += '<div class="h2" style="margin:2px 4px 10px">' + DKINDS[k].n +
+      ' <span class="pmeta" style="font-weight:400">' + arr.length + " 段</span></div>";
+    arr.forEach(function (it) { html += dPara(it); });
+  });
+  return html;
 }
 
 function renderTopic() {
@@ -1727,28 +1826,38 @@ function renderTopic() {
   });
   $("#topicTabs").innerHTML = h;
 
-  var items = [];
-  DB.notes.forEach(function (n) {
-    if (cur ? n.tp === cur : !n.tp) items.push({ ts: n.ts, h: noteHtml(n) });
-  });
-  DB.money.forEach(function (x) {
-    if (cur && x.tp === cur) items.push({ ts: x.ts, h: moneyCard(x) });
-  });
-  if (cur) DB.todos.forEach(function (t) {
-    if (t.tp === cur) items.push({ ts: t.ts, h: todoCard(t) });
-  });
-  items.sort(function (a, b) { return b.ts - a.ts; });
+  var items = diaryItems(cur), name = cur || "日常";
+  $("#dName").textContent = name;
 
-  var html = "", last = null;
+  var days = {}, spent = 0;
   items.forEach(function (it) {
-    var dl = dayLabel(it.ts);
-    if (dl !== last) { html += '<div class="daylabel">' + dl + "</div>"; last = dl; }
-    html += it.h;
+    days[dayLabel(it.ts)] = 1;
+    if (it.k === "money" && it.o.dir === "out") spent += Number(it.o.amt) || 0;
   });
-  $("#topicList").innerHTML = html ||
-    '<div class="empty">' + (cur ? "「" + esc(cur) + "」还空着<br>回首页，把左上角切成它，然后开始说" : "还没记东西") + "</div>";
-  hydrateThumbs($("#topicList"));
-  $("#topicList").querySelectorAll("[data-m]").forEach(function (row) {
+  var nd = Object.keys(days).length;
+  $("#dMeta").textContent = items.length
+    ? nd + " 天 · " + items.length + " 段" + (spent ? " · 花 ¥" + fmtMoney(spent) : "")
+    : "还空着 —— 说一句就是第一段";
+
+  var box = $("#topicList");
+  if (!items.length) {
+    box.innerHTML = '<div class="empty">这是《' + esc(name) + "》的第一段<br>上面那条说完，就出现在这里</div>";
+  } else if (state.topicView === "kind") {
+    box.innerHTML = renderDiaryByKind(items);
+  } else {
+    var html = "", last = null;
+    items.forEach(function (it) {
+      var dl = dayLabel(it.ts);
+      if (dl !== last) { html += '<div class="daylabel">' + dl + "</div>"; last = dl; }
+      html += dPara(it);
+    });
+    box.innerHTML = html;
+  }
+
+  $("#dViewName").textContent = state.topicView === "kind" ? "按类别" : "正文";
+  $("#dViewSwitch").textContent = state.topicView === "kind" ? "按时间看" : "按类别看";
+  hydrateThumbs(box);
+  box.querySelectorAll("[data-m]").forEach(function (row) {
     row.onclick = function () { openMoneySheet(row.getAttribute("data-m")); };
   });
   $("#topicGen").style.display = items.length ? "" : "none";
@@ -2405,8 +2514,57 @@ function setMicTip(txt, live) {
   m.className = "mictip" + (live ? " live" : "");
 }
 
-/* 语音怎么用：一张能看懂的图，解决"点了没反应" */
-function openVoiceHowto() {
+/* 当场实测：这台手机、这个打开方式，到底能不能直接录音 */
+function probeVoice() {
+  openSheet(
+    '<h3>当场试一下</h3><div class="sb">不猜，直接测这台手机现在能不能录音</div>' +
+    '<div class="privacy" id="pvBox" style="line-height:2">正在试…</div>' +
+    '<div style="margin-top:18px"><button class="btn brand" id="pvOk">知道了</button></div>'
+  );
+  var box = $("#pvBox");
+  $("#pvOk").onclick = closeSheet;
+
+  var R = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var head = "打开方式：" + (isStandalone() ? "<b>桌面图标（主屏模式）</b>" : "<b>浏览器里（有地址栏）</b>");
+  var bad = function (why) {
+    box.innerHTML = head + "<br>网页录音：<b style='color:#BE123C'>不行</b> —— " + why +
+      "<br><br><b>结论</b>：这个打开方式没法点一下就录。用键盘右下角那个 🎤，一样能说话，而且能离线。";
+  };
+
+  if (!R) { bad("这个浏览器没提供录音接口"); return; }
+  box.innerHTML = head + "<br>网页录音：接口有，正在启动…";
+
+  var done = false, rec2 = null;
+  try { rec2 = new R(); } catch (e) { bad("创建失败"); return; }
+  rec2.lang = "zh-CN"; rec2.interimResults = false; rec2.maxAlternatives = 1;
+  var tm = setTimeout(function () {
+    if (done) return; done = true;
+    try { rec2.abort(); } catch (e) {}
+    bad("启动后 2 秒没有响应，被系统按住了");
+  }, 2200);
+  rec2.onstart = function () {
+    if (done) return; done = true; clearTimeout(tm);
+    box.innerHTML = head + "<br>网页录音：<b style='color:#0F9D58'>能用</b> —— 刚才真的启动了" +
+      "<br><br><b>结论</b>：已经帮你切成「网页听写」，以后点橘黄麦克风就是直接录音。";
+    DB.settings.voiceMode = "browser"; DB.settings.voiceConsent = true;
+    save(); try { renderMe(); } catch (e) {}
+    try { rec2.stop(); } catch (e) {}
+  };
+  rec2.onerror = function (e) {
+    if (done) return; done = true; clearTimeout(tm);
+    var c = e.error || "";
+    bad(c === "not-allowed" || c === "service-not-allowed" ? "系统拒绝了麦克风权限"
+      : c === "network" ? "识别要联网，被挡了"
+      : c === "audio-capture" ? "抓不到麦克风"
+      : "错误代码 " + c);
+  };
+  try { rec2.start(); } catch (e) {
+    if (done) return; done = true; clearTimeout(tm);
+    bad("启动就报错了");
+  }
+}
+
+/* 语音怎么用：一张能看懂的图，解决"点了没反应" */function openVoiceHowto() {
   DB.settings.voiceHowtoSeen = true; save();
   var kb = 'background:#fff;border-radius:7px;height:36px;display:grid;place-items:center;font-size:13px;color:#374151;';
   openSheet(
@@ -3594,8 +3752,7 @@ function quickSay(text, mode) {
     return it;
   }
 
-  /* —— 合集页：钱进账本、要做的事进待办、其余进记录。
-        归到"正在看的那一栏"，不是左上角设的那个 —— 看的和记的要一致 —— */
+  /* —— 日记本：钱进账本、要做的事进待办、其余写进正文，都归到"正在看的那一篇" —— */
   var tpGo = state.topicTopic || "";
   var nm = tpGo || "日常";
 
@@ -3603,8 +3760,9 @@ function quickSay(text, mode) {
   if (p2) {
     var r2 = addMoney({ amt: p2.amt, dir: p2.dir, cat: p2.cat, t: v }, 0, tpGo);
     renderAll(); if (state.tab === "topic") renderTopic();
+    scrollDiaryEnd();
     var m2 = mcat(r2.cat);
-    toast("记了一笔 " + m2.n + " " + (r2.dir === "in" ? "+" : "−") + "¥" + fmtMoney(r2.amt), "改一下", function () {
+    toast("记了一笔 " + m2.n + " " + (r2.dir === "in" ? "+" : "−") + "¥" + fmtMoney(r2.amt) + "，也算进这一篇", "改一下", function () {
       openMoneySheet(r2.id);
     });
     return r2;
@@ -3612,13 +3770,29 @@ function quickSay(text, mode) {
   if (looksLikeTodo(v)) {
     var t2 = addTodo(v, parseWhen(v).due, tpGo);
     renderAll(); if (state.tab === "topic") renderTopic();
-    toast("加进「" + nm + "」的待办了");
+    scrollDiaryEnd();
+    toast("已写进这一篇，也加进了待办");
     return t2;
   }
   var n2 = addNote(v, { tp: tpGo });
   renderAll(); if (state.tab === "topic") renderTopic();
-  toast("已记到「" + nm + "」", "整理成一篇", function () { openDigest(tpGo); });
+  scrollDiaryEnd();
+  toast("已写进这一篇", "看全文", function () { openDigest(tpGo); });
   return n2;
+}
+
+/* 写完自动滚到最新那一段，不然用户以为没写进去 */
+function scrollDiaryEnd() {
+  if (state.tab !== "topic" || state.topicView === "kind") return;
+  var box = $("#topicList");
+  if (!box) return;
+  var els = box.querySelectorAll(".dpara");
+  if (!els.length) return;
+  var el = els[els.length - 1];
+  setTimeout(function () {
+    try { el.scrollIntoView({ block: "center", behavior: "smooth" }); }
+    catch (e) { try { el.scrollIntoView(); } catch (e2) {} }
+  }, 80);
 }
 
 /* 把某个输入框 + 麦克风 + 提交按钮接起来（三处复用同一套） */
@@ -3684,6 +3858,11 @@ function bind() {
   /* ---- 合集 / 旅行手账 ---- */
   $("#topicBtn").onclick = openTopicSheet;
   $("#topicNew").onclick = openTopicSheet;
+  $("#diaryGo").onclick = function () { state.topicTouched = false; go("topic"); };
+  $("#dViewSwitch").onclick = function () {
+    state.topicView = state.topicView === "kind" ? "time" : "kind";
+    renderTopic();
+  };
   $("#topicGo").onclick = function () { state.topicTopic = curTopic(); go("topic"); };
   $("#topicGen").onclick = function () { openDigest(state.topicTopic || ""); };
   $("#topicTabs").addEventListener("click", function (e) {
@@ -3818,6 +3997,8 @@ function bind() {
       else { toast("你拒绝了通知权限"); }
     });
   };
+
+  $("#pvBtn").onclick = probeVoice;
 
   $("#voiceSwitch").onclick = function () {
     var ios = isIOS();
@@ -4083,6 +4264,14 @@ function setupInstall() {
   });
 }
 
+/* 底部导航的实际高度，日记本那条输入栏要贴在它上面 */
+function measureNav() {
+  var n = document.querySelector("nav");
+  if (!n || !n.getBoundingClientRect) return;
+  var h = n.getBoundingClientRect().height;
+  if (h > 20) document.documentElement.style.setProperty("--navh", Math.round(h) + "px");
+}
+
 function boot() {
   load();
   buildPad();
@@ -4090,6 +4279,9 @@ function boot() {
   renderFilters();
   renderAll();
   updatePreview();
+  measureNav();
+  window.addEventListener("resize", measureNav);
+  window.addEventListener("orientationchange", function () { setTimeout(measureNav, 220); });
 
   var d = new Date();
   var wk = "日一二三四五六"[d.getDay()];

@@ -3,7 +3,7 @@
    断网时才回落到缓存，所以离线也能用。
    v2.0.0 起：页面已用 CSP 的 connect-src 'none' 掐断所有跨域请求，
    这里对非同源请求直接放行、不缓存，也不做任何代理。 */
-const CACHE = "life-keeper-2.2.1";
+const CACHE = "life-keeper-2.3.1";
 const ASSETS = [
   "./",
   "./index.html",
