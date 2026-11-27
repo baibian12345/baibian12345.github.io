@@ -92,6 +92,12 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc
 .chip .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .samples{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;-webkit-overflow-scrolling:touch}
 .samples::-webkit-scrollbar{display:none}
+.fileh{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+.topicbar{display:flex;align-items:center;gap:8px;margin:0 2px 10px}
+.tpill{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12.5px;color:var(--ink2)}
+.tpill b{color:var(--ink);font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpill .cv{font-size:10px;color:var(--ink3)}
+.dg{white-space:pre-wrap;font-size:13px;line-height:1.85;background:#F7F8FA;border:1px solid var(--line);border-radius:14px;padding:14px;max-height:46vh;overflow:auto;font-family:ui-monospace,Menlo,monospace}
 .smp{
   flex:0 0 auto;font-size:12.5px;color:var(--ink2);background:#fff;border:1px solid var(--line);
   border-radius:999px;padding:8px 13px;
@@ -213,9 +219,17 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
 .mrow .amt.in{color:#0F9D58}
 
 /* ---- 便利贴 ---- */
-.todo-add{display:flex;gap:8px;margin-bottom:16px}
-.todo-add input{flex:1;min-width:0;border:1px solid var(--line);border-radius:13px;padding:12px 13px;outline:none;background:#fff;font-size:14.5px}
-.todo-add button{flex:0 0 auto;padding:0 17px;border-radius:13px;background:var(--ink);color:#fff;font-weight:600;font-size:14px}
+.todo-add,.saybar{display:flex;gap:8px;margin-bottom:16px}
+.saybar{margin-bottom:12px}
+.todo-add input,.saybar input{flex:1;min-width:0;border:1px solid var(--line);border-radius:13px;padding:12px 13px;outline:none;background:#fff;font-size:14.5px}
+.todo-add button,.saybar button{flex:0 0 auto;padding:0 17px;border-radius:13px;background:var(--ink);color:#fff;font-weight:600;font-size:14px}
+.todo-add .tmic,.saybar .tmic{flex:0 0 auto;width:44px;padding:0;display:grid;place-items:center;background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:13px}
+.todo-add .tmic svg,.saybar .tmic svg{width:19px;height:19px}
+.todo-add .tmic.rec,.saybar .tmic.rec{background:var(--brand);color:#fff;border-color:var(--brand)}
+.saybar .sgo{font-size:14px}
+.saybar .sgo:disabled{opacity:.4}
+.stick .due{display:inline-block;font-size:10.5px;padding:1.5px 7px;border-radius:999px;background:rgba(0,0,0,.07);color:rgba(0,0,0,.52);margin-left:6px;vertical-align:1px;white-space:nowrap}
+.tdhint{font-size:11.5px;color:var(--ink3);margin:-8px 2px 14px;line-height:1.6}
 .stick{position:relative;border-radius:15px;padding:13px 12px 12px 15px;margin-bottom:10px;display:flex;gap:11px;align-items:flex-start;box-shadow:0 2px 9px rgba(20,24,32,.055)}
 .stick .ck{width:22px;height:22px;border-radius:7px;border:2px solid rgba(0,0,0,.15);flex:0 0 22px;margin-top:1px;display:grid;place-items:center;transition:.15s}
 .stick .ck svg{width:13px;height:13px;opacity:0;transition:.15s}
@@ -280,6 +294,9 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
   z-index:80;opacity:0;pointer-events:none;transition:.22s;display:flex;align-items:center;gap:12px;max-width:88vw;
 }
 #toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+/* 弹层开着的时候，提示跑到屏幕上方，别压住弹层底部的按钮 */
+#toast.up{bottom:auto;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-14px)}
+#toast.up.on{transform:translate(-50%,0)}
 #toast .act{color:#FFB08A;font-weight:700;font-size:13.5px;white-space:nowrap}
 .hint{font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.7}
 </style>
@@ -299,6 +316,12 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
     <!-- 首页 -->
     <section class="view on" id="v-home">
       <div id="brief" style="display:none"></div>
+      <div class="topicbar">
+        <button class="tpill" id="topicBtn">
+          记到 <b id="topicName">日常</b><span class="cv">▾</span>
+        </button>
+        <span class="pmeta" id="topicHint"></span>
+      </div>
       <div class="card">
         <div class="micwrap">
           <button class="mic" id="mic" aria-label="按住说话">
@@ -306,19 +329,19 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
               <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
             </svg>
           </button>
-          <div class="mictip" id="mictip">点一下，说出你想记的事</div>
+          <div class="mictip" id="mictip">点它 → 键盘右下角那个 🎤 说话</div>
         </div>
 
         <textarea class="tin" id="tin" inputmode="text" enterkeyhint="done" autocapitalize="off" spellcheck="false" placeholder="也可以直接打字，例如：明天下午三点提醒我交房租"></textarea>
 
         <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-          <button class="smp" id="pickImg" style="padding:8px 13px;display:flex;align-items:center;gap:6px">
+          <label class="smp" id="pickImg" for="imgInput" style="padding:8px 13px;display:flex;align-items:center;gap:6px;cursor:pointer">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
             存截图
-          </button>
+          </label>
           <span class="pmeta">截图会留在本机，可再说一句话说明</span>
         </div>
-        <input type="file" id="imgInput" accept="image/*" style="display:none">
+        <input type="file" id="imgInput" accept="image/*" class="fileh">
 
         <div class="preview" id="preview"></div>
 
@@ -332,8 +355,9 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
         <button class="smp">午饭 35</button>
         <button class="smp">打车花了 28 块 5</button>
         <button class="smp">发工资 8000</button>
+        <button class="smp">明天下午去买衣服</button>
         <button class="smp">明天下午三点提醒我交房租</button>
-        <button class="smp">想读完《人类简史》第三章</button>
+        <button class="smp">今天和同事聊了下个版本的方向</button>
       </div>
 
       <div class="h2" id="todoHomeH" style="display:none">今天要做 <span class="link" id="todoHomeMore">全部 →</span></div>
@@ -345,6 +369,15 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
 
     <!-- 账本 -->
     <section class="view" id="v-money">
+      <div class="saybar">
+        <input id="mSayIn" placeholder="说一句就记账，例如：午饭 35" enterkeyhint="done" autocomplete="off">
+        <button class="tmic" id="mSayMic" aria-label="语音记账">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
+          </svg>
+        </button>
+        <button class="sgo" id="mSayGo">记</button>
+      </div>
       <div class="seg" id="mSeg">
         <button data-p="month" class="on">本月</button>
         <button data-p="year">本年</button>
@@ -369,9 +402,15 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
     <!-- 待办 -->
     <section class="view" id="v-todo">
       <div class="todo-add">
-        <input id="todoIn" placeholder="想做点什么…" enterkeyhint="done" autocomplete="off">
+        <input id="todoIn" placeholder="想做点什么…说一句也行" enterkeyhint="done" autocomplete="off">
+        <button id="todoMic" class="tmic" aria-label="语音输入">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
+          </svg>
+        </button>
         <button id="todoAddBtn">加</button>
       </div>
+      <div class="tdhint">说一句也行，比如「明天下午去买衣服」—— 会记成待办，做完点左边方框打勾。</div>
       <div class="h2" style="margin-top:0">还没做 <span class="link" id="todoCount">0 件</span></div>
       <div id="todoList"></div>
       <div class="h2" id="todoDoneH" style="display:none">已完成</div>
@@ -380,6 +419,15 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
 
     <!-- 知识库 -->
     <section class="view" id="v-kb">
+      <div class="saybar">
+        <input id="kbSayIn" placeholder="说一句存起来，比打字快" enterkeyhint="done" autocomplete="off">
+        <button class="tmic" id="kbSayMic" aria-label="语音存一句">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
+          </svg>
+        </button>
+        <button class="sgo" id="kbSayGo">存</button>
+      </div>
       <div class="toolbar">
         <div class="search">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#A2A8B3" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
@@ -393,6 +441,29 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
         <button class="smp" id="kbTxt" style="flex:1;justify-content:center;padding:10px 0">＋ 文字</button>
       </div>
       <div id="kbList"></div>
+    </section>
+
+    <!-- 合集 / 旅行手账 -->
+    <section class="view" id="v-topic">
+      <div class="back" data-back="me">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
+        旅行 / 合集
+      </div>
+      <div class="filters" id="topicTabs"></div>
+      <div class="saybar">
+        <input id="tpSayIn" placeholder="在这儿说一句，直接进当前合集" enterkeyhint="done" autocomplete="off">
+        <button class="tmic" id="tpSayMic" aria-label="语音记进合集">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
+          </svg>
+        </button>
+        <button class="sgo" id="tpSayGo">记</button>
+      </div>
+      <div style="display:flex;gap:8px;margin:2px 0 14px">
+        <button class="smp" id="topicGen" style="flex:1;justify-content:center;padding:11px 0">整理成一篇 →</button>
+        <button class="smp" id="topicNew" style="flex:0 0 auto;padding:11px 14px">＋ 新建</button>
+      </div>
+      <div id="topicList"></div>
     </section>
 
     <!-- 时间线 -->
@@ -497,6 +568,14 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
         <div class="row" id="rowVoice">
           <div><div class="rl">语音来源</div><div class="rd" id="voiceDesc">浏览器听写 · 可能联网</div></div>
           <button class="chip" id="voiceSwitch" style="background:#F4F6F9;color:#6C7380">切换</button>
+        </div>
+      </div>
+
+      <div class="h2">旅行 / 合集</div>
+      <div class="card" style="padding:6px 16px">
+        <div class="row" id="rowTopic">
+          <div><div class="rl">旅行手账、外出想法</div><div class="rd" id="topicDesc">把一段时间的想法归到一起，最后整理成一篇</div></div>
+          <button class="chip" id="topicGo" style="background:#F4F6F9;color:#6C7380">打开</button>
         </div>
       </div>
 
@@ -635,7 +714,7 @@ var KW = {
 
 var RKEY = "lifeKeeper.v1";
 var VERKEY = "lifeKeeper.appVer";
-var APP_VER = "2.0.0";
+var APP_VER = "2.2.1";
 var DATA_VER = 3;
 /* 安全版：CSP 里 connect-src 已经是 'none'，浏览器层面禁止一切外发请求。
    这里再加一层代码级的闸，双保险——就算以后 CSP 被谁放宽了，代码也不会去发。
@@ -650,7 +729,7 @@ var MCAT = {
   food:    { n: "餐饮", dir: "out", c: "#B45309", bg: "#FEF3C7", ic: "碗",
              kw: ["早饭","早餐","午饭","午餐","晚饭","晚餐","夜宵","吃饭","吃","喝","咖啡","奶茶","外卖","食堂","火锅","烧烤","面","饭","水果","零食","饮料","酒","聚餐","请客","买菜","菜市场","食材","生鲜"] },
   traffic: { n: "交通", dir: "out", c: "#1D4ED8", bg: "#DBEAFE", ic: "车",
-             kw: ["打车","出租车","地铁","公交","高铁","火车","机票","飞机","加油","油费","停车","过路费","网约车","滴滴","共享单车","骑车","船票","车票"] },
+             kw: ["打车","出租车","地铁","公交","高铁","火车","机票","飞机","加油","油费","停车","过路费","网约车","滴滴","共享单车","骑车","船票","车票","摆渡车","索道","观光车"] },
   shop:    { n: "购物", dir: "out", c: "#7C3AED", bg: "#EDE9FE", ic: "袋",
              kw: ["买","购","衣服","裤子","鞋","包","化妆品","护肤","手机","电脑","耳机","数码","家电","家具","淘宝","京东","拼多多","快递","网购","日用品","纸巾","洗衣液"] },
   home:    { n: "居家", dir: "out", c: "#0F766E", bg: "#CCFBF1", ic: "家",
@@ -658,7 +737,7 @@ var MCAT = {
   med:     { n: "医疗", dir: "out", c: "#BE123C", bg: "#FFE4E6", ic: "医",
              kw: ["医院","挂号","看病","药","买药","体检","牙","门诊","住院","疫苗","理疗","眼镜","口罩","保健品","推拿"] },
   fun:     { n: "娱乐", dir: "out", c: "#9333EA", bg: "#F3E8FF", ic: "乐",
-             kw: ["电影","游戏","演出","门票","旅游","酒店","唱歌","KTV","会员","视频会员","健身","球","展览","音乐会","剧本杀","露营","摄影"] },
+             kw: ["电影","游戏","演出","门票","旅游","酒店","民宿","客栈","住宿","青旅","唱歌","KTV","会员","视频会员","健身","球","展览","音乐会","剧本杀","露营","摄影"] },
   social:  { n: "人情", dir: "out", c: "#C2410C", bg: "#FFEDD5", ic: "礼",
              kw: ["红包","随礼","份子","送礼","礼物","生日","结婚","满月","探望","慰问","请客吃饭"] },
   study:   { n: "学习", dir: "out", c: "#0369A1", bg: "#E0F2FE", ic: "书",
@@ -682,7 +761,7 @@ function mcat(key) { return MCAT[key] || MCAT.other; }
 
 var DB = null;
 var state = { tab: "home", filter: "all", q: "", sheetId: null, pinBuf: "", pinMode: "unlock", toastTimer: null,
-              mPeriod: "month", kbQ: "", kbTag: "" };
+              mPeriod: "month", kbQ: "", kbTag: "", topicTopic: "", topicTouched: false };
 
 /* ================== 工具 ================== */
 function $(s, r) { return (r || document).querySelector(s); }
@@ -923,6 +1002,17 @@ function parseMoney(text) {
     if (m && (hasVerb || best)) amt = parseFloat(m[1]);
   }
 
+  /* 6.5) 「人均118」「一共118」「总共300」——这些词后面跟的数字就是钱，
+         哪怕后面还有半句（"火锅人均118，太油了但真香"） */
+  if (amt === null) {
+    m = t.match(/(?:人均|一共|总共|合计|总价|单价|花掉?)\s*(\d+(?:\.\d+)?)/);
+    if (m) amt = parseFloat(m[1]);
+  }
+  if (amt === null) {
+    m = t.match(/(?:人均|一共|总共|合计|总价|单价|花掉?)\s*([零〇一二三四五六七八九十百千万两]{1,6})/);
+    if (m) { var cn2 = cnMoney(m[1]); if (!isNaN(cn2) && cn2 > 0) amt = cn2; }
+  }
+
   /* 7) 句尾中文数字：「体检花了六百」 */
   if (amt === null && hasVerb) {
     m = t.match(/([零〇一二三四五六七八九十百千万两]{1,6})\s*$/);
@@ -1061,6 +1151,21 @@ function parseWhen(text, baseMs) {
     if (mm > 59) mm = 59;
   }
 
+  /* 只说了时段、没说钟点：必须同时说了日期才算计划（"明天下午"→14:00），
+     纯描述（"中午吃了碗面"）不设提醒 */
+  if (hh === null && dateSet) {
+    var pd = t.match(/(凌晨|早上|早晨|上午|中午|下午|傍晚|晚上|夜里|夜间)/);
+    if (pd) {
+      var pIdx = t.indexOf(pd[1]);
+      var pBefore = pIdx > 0 ? t.slice(Math.max(0, pIdx - 2), pIdx) : "";
+      if (!/[昨上前]/.test(pBefore)) {
+        var PDEF = { "凌晨": 5, "早上": 8, "早晨": 8, "上午": 10, "中午": 12, "下午": 14, "傍晚": 18, "晚上": 20, "夜里": 21, "夜间": 21 };
+        hh = PDEF[pd[1]];
+        mm = 0;
+      }
+    }
+  }
+
   if (hh !== null) {
     base.setHours(hh, mm, 0, 0);
     out.hasTime = true;
@@ -1081,10 +1186,21 @@ function remindIntent(t) {
   return /提醒|记得|别忘|叫我|到时候|该交|要交|得交|去交|截止|到期|还款|还钱|付|缴费|提交|预约|报名|续费|取件|接孩子/.test(String(t || ""));
 }
 
+/* 判断"这句话是一件要做的事"，用来把它送进待办而不是只当一条记录 */
+var TODO_ACT = /(买|购|取|拿|寄|交|缴|还|借|预约|订|打电话|联系|问一下|问问|查|整理|准备|写|背|读|学|练|洗|修|换|退|办|带|送|开|找|装|清|扫|剪|拍|转|报|申请|提交|更新|回复|确认|做|弄|改|录|签|领|充值|续费|取件|接|拜访|面试|体检|打卡|搬|浇|喂|晾)/;
+var TODO_NO = /(已经|刚刚|刚才|昨天|前天|上周|上个月|去年|买了|看了|吃了|去了|做完了|弄好了|搞定了|完成了|付了|收到|记一下|备忘|提醒我)/;
+
+function looksLikeTodo(text) {
+  var t = String(text || "").trim();
+  if (!t || t.length > 34) return false;
+  if (TODO_NO.test(t)) return false;      /* 带过去/完成意味的是记录，不是待办 */
+  if (parseMoney(t)) return false;          /* 是钱就走账本 */
+  return TODO_ACT.test(t);
+}
+
 function autoDue(text) {
   var p = parseWhen(text);
-  if (p.due) return p.due;
-  if (remindIntent(text)) {
+  if (p.due) return p.due;  if (remindIntent(text)) {
     var d = new Date();
     d.setHours(20, 0, 0, 0);
     if (d.getTime() <= Date.now()) { d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); }
@@ -1109,6 +1225,8 @@ function addNote(text, opts) {
     done: false,
     nf: 0
   };
+  var tpv = opts.tp !== undefined ? opts.tp : (DB.settings.topic || "");
+  if (tpv) note.tp = tpv;
   if (opts.imgId) note.imgId = opts.imgId;
   if (opts.imgData) note.imgData = opts.imgData;
   if (opts.url) note.url = opts.url;
@@ -1123,7 +1241,7 @@ function getNote(id) {
 }
 
 /* ================== 记账 / 待办 / 知识库：增删改 ================== */
-function addMoney(p, ts) {
+function addMoney(p, ts, tp) {
   if (!p || !p.amt) return null;
   var rec = {
     id: uid(), ts: ts || Date.now(),
@@ -1132,6 +1250,8 @@ function addMoney(p, ts) {
     cat: MCAT[p.cat] ? p.cat : "other",
     t: String(p.t || "").trim()
   };
+  var tpv = tp !== undefined ? tp : DB.settings.topic;
+  if (tpv) rec.tp = tpv;
   DB.money.unshift(rec);
   save();
   return rec;
@@ -1144,10 +1264,12 @@ function moneyIn(period) { return DB.money.filter(function (x) { return inPeriod
 function moneyOut(period) { return DB.money.filter(function (x) { return inPeriod(x.ts, period) && x.dir === "out"; }); }
 function sumAmt(arr) { return arr.reduce(function (a, b) { return a + (Number(b.amt) || 0); }, 0); }
 
-function addTodo(text) {
+function addTodo(text, due, tp) {
   text = String(text || "").trim();
   if (!text) return null;
-  var td = { id: uid(), t: text, done: false, ts: Date.now(), doneTs: 0 };
+  var td = { id: uid(), t: text, done: false, ts: Date.now(), doneTs: 0, due: Number(due) || 0 };
+  var tpv = tp !== undefined ? tp : DB.settings.topic;
+  if (tpv) td.tp = tpv;
   DB.todos.unshift(td);
   save();
   return td;
@@ -1502,7 +1624,7 @@ function renderTodo() {
     return '<div class="stick' + (x.done ? " done" : "") + '" data-td="' + x.id + '" style="background:' +
       STICK_COLORS[i % STICK_COLORS.length] + '">' +
       '<div class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg></div>' +
-      '<div class="tx">' + esc(x.t) + "</div>" +
+      '<div class="tx">' + esc(x.t) + (x.due ? '<span class="due">' + fmtDue(x.due) + "</span>" : "") + "</div>" +
       '<button class="del" data-deltodo="' + x.id + '">×</button>' +
       "</div>";
   }
@@ -1512,6 +1634,210 @@ function renderTodo() {
     : '<div class="empty">还没有待办<br>上面写一句，按回车就贴上</div>';
   $("#todoDoneH").style.display = dn.length ? "" : "none";
   $("#todoDone").innerHTML = dn.slice(0, 40).map(stick).join("");
+}
+
+/* ================== 合集 / 旅行手账 ================== */
+function curTopic() { return DB.settings.topic || ""; }
+function topicName() { return curTopic() || "日常"; }
+
+function topicList() {
+  var set = {};
+  (DB.settings.topics || []).forEach(function (t) { if (t) set[t] = 1; });
+  DB.notes.forEach(function (n) { if (n.tp) set[n.tp] = 1; });
+  DB.todos.forEach(function (t) { if (t.tp) set[t.tp] = 1; });
+  DB.money.forEach(function (m) { if (m.tp) set[m.tp] = 1; });
+  return Object.keys(set);
+}
+
+function setTopic(name) {
+  DB.settings.topic = String(name || "").trim();
+  save();
+  renderTopicBar();
+  /* 换了"记到哪儿"，下次进合集页就跟着走过去 */
+  state.topicTouched = false;
+}
+
+function renderTopicBar() {
+  var el = $("#topicName");
+  if (el) el.textContent = topicName();
+  var h = $("#topicHint");
+  if (h) h.textContent = curTopic() ? "这一句会归到「" + curTopic() + "」" : "";
+}
+
+function openTopicSheet() {
+  var list = topicList(), cur = curTopic();
+  var h = '<h3>这句记到哪</h3><div class="sb">选一个，之后说的话都自动归到它下面</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 4px">' +
+    '<button class="chip" data-tp="" style="background:' + (cur ? "#F4F6F9" : "#E8F0FF") + ";color:" + (cur ? "#6C7380" : "#2B58C8") + '">日常</button>';
+  list.forEach(function (t) {
+    var on = t === cur;
+    h += '<button class="chip" data-tp="' + esc(t) + '" style="background:' + (on ? "#E8F0FF" : "#F4F6F9") + ";color:" + (on ? "#2B58C8" : "#6C7380") + '">' + esc(t) + "</button>";
+  });
+  h += "</div>" +
+    '<div class="lab" style="margin-top:18px">新建一个（比如「成都行」）</div>' +
+    '<input class="field" id="newTp" placeholder="起个名字，一句话说得清就行">' +
+    '<div style="margin-top:14px"><button class="btn brand" id="tpSave">用这个名字</button></div>';
+  openSheet(h);
+
+  $("#sheetBody").querySelectorAll("[data-tp]").forEach(function (b) {
+    b.onclick = function () {
+      setTopic(b.getAttribute("data-tp") || "");
+      closeSheet(); renderAll();
+      toast(curTopic() ? "之后记的都会归到「" + curTopic() + "」" : "已切回日常");
+    };
+  });
+  $("#tpSave").onclick = function () {
+    var v = ($("#newTp").value || "").trim();
+    if (!v) { toast("先起个名字"); return; }
+    var arr = DB.settings.topics || (DB.settings.topics = []);
+    if (arr.indexOf(v) < 0) arr.push(v);
+    setTopic(v);
+    closeSheet(); renderAll();
+    toast("已切到「" + v + "」，开始说吧");
+  };
+}
+
+function todoCard(t) {
+  var on = t.done;
+  return '<div class="card" style="padding:11px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start">' +
+    '<div style="width:18px;height:18px;border-radius:6px;border:2px solid ' + (on ? "#15181D" : "rgba(0,0,0,.18)") +
+      ";background:" + (on ? "#15181D" : "#fff") + ';flex:0 0 18px;margin-top:2px"></div>' +
+    '<div style="flex:1;min-width:0;font-size:14.5px;line-height:1.55' + (on ? ";color:#A2A8B3;text-decoration:line-through" : "") + '">' +
+      esc(t.t) + "</div>" +
+    '<span class="due" style="flex:0 0 auto">' + (on ? "已完成" : "待办") + "</span>" +
+    "</div>";
+}
+
+/* 合集里的一笔账（样式跟账本明细一致） */
+function moneyCard(x) {
+  var m = mcat(x.cat);
+  return '<div class="card" style="padding:0 14px;margin-bottom:10px"><div class="mrow" data-m="' + x.id + '">' +
+    '<div class="ci" style="background:' + m.bg + ";color:" + m.c + '">' + m.ic + "</div>" +
+    '<div class="bt"><div class="t1">' + esc(x.t || m.n) + '</div>' +
+    '<div class="t2">' + m.n + " · " + hhmm(x.ts) + "</div></div>" +
+    '<div class="amt' + (x.dir === "in" ? " in" : "") + '">' + (x.dir === "in" ? "+" : "−") + "¥" + fmtMoney(x.amt) + "</div>" +
+    "</div></div>";
+}
+
+function renderTopic() {
+  var list = topicList(), cur = state.topicTopic || "";
+  var h = '<button class="fchip' + (cur ? "" : " on") + '" data-tpc="">日常</button>';
+  list.forEach(function (t) {
+    h += '<button class="fchip' + (cur === t ? " on" : "") + '" data-tpc="' + esc(t) + '">' + esc(t) + "</button>";
+  });
+  $("#topicTabs").innerHTML = h;
+
+  var items = [];
+  DB.notes.forEach(function (n) {
+    if (cur ? n.tp === cur : !n.tp) items.push({ ts: n.ts, h: noteHtml(n) });
+  });
+  DB.money.forEach(function (x) {
+    if (cur && x.tp === cur) items.push({ ts: x.ts, h: moneyCard(x) });
+  });
+  if (cur) DB.todos.forEach(function (t) {
+    if (t.tp === cur) items.push({ ts: t.ts, h: todoCard(t) });
+  });
+  items.sort(function (a, b) { return b.ts - a.ts; });
+
+  var html = "", last = null;
+  items.forEach(function (it) {
+    var dl = dayLabel(it.ts);
+    if (dl !== last) { html += '<div class="daylabel">' + dl + "</div>"; last = dl; }
+    html += it.h;
+  });
+  $("#topicList").innerHTML = html ||
+    '<div class="empty">' + (cur ? "「" + esc(cur) + "」还空着<br>回首页，把左上角切成它，然后开始说" : "还没记东西") + "</div>";
+  hydrateThumbs($("#topicList"));
+  $("#topicList").querySelectorAll("[data-m]").forEach(function (row) {
+    row.onclick = function () { openMoneySheet(row.getAttribute("data-m")); };
+  });
+  $("#topicGen").style.display = items.length ? "" : "none";
+}
+
+function kbForTopic(name) {
+  if (!name) return [];
+  return DB.kb.filter(function (x) { return (x.tags || []).indexOf(name) >= 0; });
+}
+
+function hhmm(ms) {
+  var d = new Date(ms);
+  return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+}
+
+function buildDigest(name) {
+  var ev = [], spent = 0;
+  DB.notes.forEach(function (n) { if (name ? n.tp === name : !n.tp) ev.push({ ts: n.ts, k: "note", o: n }); });
+  if (name) {
+    kbForTopic(name).forEach(function (x) { ev.push({ ts: x.ts, k: "kb", o: x }); });
+    DB.todos.forEach(function (t) { if (t.tp === name) ev.push({ ts: t.ts, k: "todo", o: t }); });
+    DB.money.forEach(function (m) {
+      if (m.tp !== name) return;
+      if (m.dir === "out") spent += Number(m.amt) || 0;
+      ev.push({ ts: m.ts, k: "money", o: m });
+    });
+  }
+  if (!ev.length) return "";
+  ev.sort(function (a, b) { return a.ts - b.ts; });
+
+  var lines = [], lastDay = "";
+  ev.forEach(function (e) {
+    var dl = dayLabel(e.ts);
+    if (dl !== lastDay) {
+      lines.push((lines.length ? "\n" : "") + "【" + dl + "】");
+      lastDay = dl;
+    }
+    if (e.k === "note") {
+      lines.push("· " + hhmm(e.ts) + "  " + e.o.t);
+    } else if (e.k === "todo") {
+      lines.push("· " + hhmm(e.ts) + "  〔待办" + (e.o.done ? "·已完成" : "") + "〕" + e.o.t);
+    } else if (e.k === "money") {
+      var mc = mcat(e.o.cat);
+      lines.push("· " + hhmm(e.ts) + "  〔" + (e.o.dir === "in" ? "收入" : "支出") + "·" + mc.n + "〕" +
+        (e.o.dir === "in" ? "+" : "−") + "¥" + fmtMoney(e.o.amt) + (e.o.t && e.o.t !== mc.n ? "  " + e.o.t : ""));
+    } else {
+      var kind = e.o.kind === "img" ? "截图" : e.o.kind === "url" ? "网址" : "文字";
+      var ttl = e.o.title || e.o.body || "（没写标题）";
+      lines.push("· " + hhmm(e.ts) + "  [" + kind + "] " + ttl + (e.o.url ? "  " + e.o.url : ""));
+    }
+  });
+
+  var d0 = new Date(ev[0].ts), d1 = new Date(ev[ev.length - 1].ts);
+  var span = dayLabel(d0.getTime()) === dayLabel(d1.getTime())
+    ? dayLabel(d1.getTime())
+    : (d0.getMonth() + 1) + "月" + d0.getDate() + "日 — " + (d1.getMonth() + 1) + "月" + d1.getDate() + "日";
+
+  return "《" + (name || "日常") + "》\n" + span + " · 共 " + ev.length + " 条" +
+    (spent ? " · 支出 ¥" + fmtMoney(spent) : "") + "\n" +
+    "————————————————\n\n" + lines.join("\n") + "\n";
+}
+
+function openDigest(name) {
+  var txt = buildDigest(name);
+  if (!txt) { toast("这里还没有内容"); return; }
+  openSheet(
+    '<h3>整理成一篇</h3><div class="sb">按时间顺序拼好的 —— 框里可以往下滑，也可以直接改字</div>' +
+    '<textarea class="dg" id="dgTxt" style="width:100%;height:42vh;min-height:180px;border:1px solid #E9EBF0;outline:none;resize:vertical">' + esc(txt) + "</textarea>" +
+    '<div style="display:flex;gap:8px;margin-top:14px">' +
+      '<button class="btn line" id="dgCopy" style="flex:1">复制全文</button>' +
+      '<button class="btn line" id="dgDl" style="flex:1">存成文件</button>' +
+    "</div>" +
+    '<div style="margin-top:10px"><button class="btn brand" id="dgOk">好了</button></div>'
+  );
+  $("#dgCopy").onclick = function () {
+    var t = $("#dgTxt").value;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () { toast("已复制，去粘贴吧"); },
+        function () { $("#dgTxt").select(); toast("长按上面的文字选「拷贝」"); });
+    } else {
+      $("#dgTxt").select();
+      toast("长按上面的文字选「拷贝」");
+    }
+  };
+  $("#dgDl").onclick = function () {
+    download((name || "日常") + ".md", $("#dgTxt").value, "text/markdown");
+    toast("已存成文件");
+  };
+  $("#dgOk").onclick = function () { closeSheet(); };
 }
 
 /* ================== 知识库渲染 ================== */
@@ -1793,12 +2119,14 @@ function openKbEdit(id) {
 function renderAll() {
   setHeader();
   renderBrief();
+  renderTopicBar();
   renderHome();
   if (state.tab === "time") renderTimeline();
   if (state.tab === "money") renderMoney();
   if (state.tab === "todo") renderTodo();
   if (state.tab === "kb") renderKb();
   if (state.tab === "remind") renderRemind();
+  if (state.tab === "topic") renderTopic();
   if (state.tab === "me") renderMe();
   renderBadge();
 }
@@ -1813,7 +2141,7 @@ function renderBadge() {
 }
 
 /* ================== 首页预览 ================== */
-var draft = { cat: null, due: undefined, money: null, asNote: false };
+var draft = { cat: null, due: undefined, money: null, asNote: false, todo: null };
 
 function updatePreview() {
   var v = $("#tin").value.trim();
@@ -1822,7 +2150,7 @@ function updatePreview() {
     box.innerHTML = "";
     btn.disabled = true;
     btn.textContent = "记下来";
-    draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false;
+    draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false; draft.todo = null;
     return;
   }
 
@@ -1854,6 +2182,22 @@ function updatePreview() {
   var due = draft.due === undefined ? autoDue(v) : draft.due;
   draft.due = due;
 
+  /* —— 先是"要做的一件事"，还是"一条记录"？ —— */
+  var autoTd = looksLikeTodo(v);
+  var isTd = draft.todo === null ? autoTd : draft.todo;
+
+  if (isTd) {
+    var ht = '<button class="chip" id="pickTodo" style="background:#E8F0FF;color:#2B58C8">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>待办</button>' +
+      (due ? '<span class="due">⏰ ' + fmtDue(due) + "</span>" : '<span class="pmeta">没写时间的，随时可以做</span>') +
+      '<button class="smp" id="asRec" style="padding:5px 10px">改存成记录</button>';
+    box.innerHTML = ht;
+    btn.textContent = "加到待办";
+    btn.disabled = false;
+    $("#asRec").onclick = function () { draft.todo = false; updatePreview(); };
+    return;
+  }
+
   var c = CATS[cat];
   var h = '<button class="chip" id="pickCat" style="background:' + c.bg + ";color:" + c.c + '">' +
     '<span class="dot"></span>' + c.n + " · 点击改</button>";
@@ -1861,6 +2205,7 @@ function updatePreview() {
   else h += '<span class="pmeta">未设提醒</span>';
   if (!draft.cat && cls.conf > 0 && cls.conf < 0.6) h += '<span class="pmeta">· 我不太确定，帮我确认下</span>';
   if (mny) h += '<button class="smp" id="asMoney" style="padding:5px 10px">改按记账存</button>';
+  if (!autoTd) h += '<button class="smp" id="asTd" style="padding:5px 10px">改加到待办</button>';
   box.innerHTML = h;
   btn.textContent = "记下来";
   btn.disabled = false;
@@ -1869,6 +2214,8 @@ function updatePreview() {
   if (pk) pk.onclick = function () { openCatSheet(v); };
   var am = $("#asMoney");
   if (am) am.onclick = function () { draft.asNote = false; draft.money = mny; updatePreview(); };
+  var at = $("#asTd");
+  if (at) at.onclick = function () { draft.todo = true; updatePreview(); };
 }
 
 /* 首页识别出账目后，点分类按钮改类别 */
@@ -1900,7 +2247,7 @@ function openMoneyDraftSheet() {
 
 function resetDraft() {
   $("#tin").value = "";
-  draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false;
+  draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false; draft.todo = null;
   updatePreview();
 }
 
@@ -1909,6 +2256,9 @@ function openSheet(html) {
   $("#sheetBody").innerHTML = html;
   $("#mask").classList.add("on");
   $("#sheet").classList.add("on");
+  /* 上一条提示可能还停在下半屏，弹层一开就把它挪上去 */
+  var t = $("#toast");
+  if (t && t.classList.contains("on")) t.classList.add("up");
 }
 function closeSheet() {
   $("#mask").classList.remove("on");
@@ -2008,7 +2358,16 @@ function openDetail(id) {
 
 /* ================== 语音 ================== */
 var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+/* 语音写到哪个输入框：首页 #tin、待办页 #todoIn、账本 #mSayIn、知识库 #kbSayIn、合集 #tpSayIn */
+var voiceTarget = "#tin", voiceBtn = "#mic";
+/* 说完之后要做什么（不设就按首页的老规矩走） */
+var voiceDone = null;
+function vIn() { return $(voiceTarget); }
 var rec = null, recOn = false, heard = "", liveText = "";
+
+function vBtnEl() { return voiceBtn ? $(voiceBtn) : null; }
+function vStopRecStyle() { var b = vBtnEl(); if (b) b.classList.remove("rec"); }
+function focusVoiceInput() { var el = vIn(); if (el) { try { el.focus(); } catch (e) {} } }
 
 function speechAvailable() { return !!SR; }
 
@@ -2034,15 +2393,51 @@ function fallbackToIME() {
     $("#fbOk").onclick = function () {
       closeSheet();
       setMicTip("点输入框 → 键盘右下角 🎤 → 说完点「完成」");
-      $("#tin").focus();
+      focusVoiceInput();
     };
   }, 500);
 }
 
 function setMicTip(txt, live) {
   var m = $("#mictip");
+  if (!m) return;
   m.textContent = txt;
   m.className = "mictip" + (live ? " live" : "");
+}
+
+/* 语音怎么用：一张能看懂的图，解决"点了没反应" */
+function openVoiceHowto() {
+  DB.settings.voiceHowtoSeen = true; save();
+  var kb = 'background:#fff;border-radius:7px;height:36px;display:grid;place-items:center;font-size:13px;color:#374151;';
+  openSheet(
+    '<h3>用嘴记，不用打字</h3>' +
+    '<div class="sb">说话 → 键盘右下角那个 🎤 → 字自己出来</div>' +
+
+    '<div style="margin:16px 0 6px;font-size:13.5px;font-weight:600;color:#15181D">① 先点一下输入框，键盘弹出来</div>' +
+    '<div style="background:#D5D9DF;border-radius:14px;padding:10px">' +
+      '<div style="display:flex;gap:6px;margin-bottom:6px">' +
+        '<div style="' + kb + 'flex:1">拼音</div><div style="' + kb + 'flex:1">ABC</div><div style="' + kb + 'flex:1">删除</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px">' +
+        '<div style="' + kb + 'flex:0 0 52px">123</div>' +
+        '<div style="' + kb + 'flex:1">空格</div>' +
+        '<div style="' + kb + 'flex:0 0 62px">换行</div>' +
+        '<div style="' + kb + 'flex:0 0 40px;box-shadow:0 0 0 2.5px #FF6B35;color:#FF6B35;font-size:17px">🎤</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="text-align:center;font-size:12px;color:#FF6B35;margin:8px 0 16px">② 就点图里圈红这个（键盘右下角）</div>' +
+
+    '<div style="font-size:13.5px;font-weight:600;color:#15181D;margin-bottom:6px">③ 说完点键盘上的「完成」，字就进去了</div>' +
+
+    '<div class="privacy" style="margin-top:14px">' +
+      '<b>键盘上没有 🎤 怎么办？</b><br>' +
+      '设置 → 通用 → 键盘 → 打开「<b>启用听写</b>」，再把「中文（普通话）」下载下来。<b>下载好以后断网也能说话</b>，一个字都不出手机。<br><br>' +
+      '<b>为什么点了大麦克风不直接录音？</b><br>' +
+      'iPhone 不允许"加到主屏幕的网页"调用麦克风，只有 App 可以。这是苹果的限制，所有网页都一样。所以这个按钮的作用是<b>帮你把键盘调出来</b>，真正听你说话的是键盘上那个 🎤。' +
+    '</div>' +
+    '<div style="margin-top:18px"><button class="btn brand" id="vhOk">知道了，去用</button></div>'
+  );
+  $("#vhOk").onclick = function () { closeSheet(); focusVoiceInput(); };
 }
 
 function openVoiceConsent() {
@@ -2075,22 +2470,26 @@ function openVoiceConsent() {
     DB.settings.voiceConsent = true; DB.settings.voiceMode = "ime"; save();
     closeSheet(); renderMe();
     setMicTip("请点输入框，用键盘上的麦克风键说话");
-    $("#tin").focus();
+    focusVoiceInput();
   };
 }
 
 function startVoice() {
+  var inp = vIn();
+  if (!inp) { toast("这里没法输入，换个地方说"); return; }
   if (!speechAvailable()) {
     DB.settings.voiceMode = "ime";
-    setMicTip("这台手机上浏览器不支持听写，请用键盘语音键");
-    toast("已切到键盘语音：点输入框后按键盘的麦克风");
-    $("#tin").focus();
+    setMicTip("点输入框 → 键盘右下角 🎤 → 说完点「完成」");
+    inp.focus();
+    if (!DB.settings.voiceHowtoSeen) { setTimeout(openVoiceHowto, 260); }
+    else toast("键盘弹出来了，点右下角那个 🎤");
     return;
   }
   if (DB.settings.voiceMode === "ime") {
     setMicTip("点输入框 → 键盘右下角 🎤 → 说完点「完成」");
-    $("#tin").focus();
-    toast("键盘弹出来后，点右下角麦克风说话");
+    inp.focus();
+    if (!DB.settings.voiceHowtoSeen) { setTimeout(openVoiceHowto, 260); }
+    else toast("键盘弹出来了，点右下角那个 🎤");
     return;
   }
   if (!DB.settings.voiceConsent) { openVoiceConsent(); return; }
@@ -2098,8 +2497,8 @@ function startVoice() {
   try { if (rec && recOn) { rec.stop(); return; } } catch (e) {}
 
   heard = ""; liveText = "";
-  $("#tin").value = "";
-  draft.cat = null; draft.due = undefined;
+  inp.value = "";
+  if (voiceTarget === "#tin") { draft.cat = null; draft.due = undefined; }
 
   rec = new SR();
   rec.lang = "zh-CN";
@@ -2109,7 +2508,7 @@ function startVoice() {
 
   rec.onstart = function () {
     recOn = true;
-    $("#mic").classList.add("rec");
+    var b = vBtnEl(); if (b) b.classList.add("rec");
     setMicTip("我在听… 再点一下结束", true);
   };
   rec.onresult = function (e) {
@@ -2121,13 +2520,13 @@ function startVoice() {
     }
     if (fin) heard += fin;
     liveText = itm;
-    $("#tin").value = (heard + itm).trim();
+    inp.value = (heard + itm).trim();
     setMicTip((heard + itm).trim() || "我在听…", true);
-    updatePreview();
+    if (voiceTarget === "#tin") updatePreview();
   };
   rec.onerror = function (e) {
     recOn = false;
-    $("#mic").classList.remove("rec");
+    vStopRecStyle();
     var code = e.error || "";
     if (code === "not-allowed" || code === "service-not-allowed") {
       setMicTip("麦克风被拒绝，请在浏览器设置里允许");
@@ -2146,13 +2545,17 @@ function startVoice() {
   };
   rec.onend = function () {
     recOn = false;
-    $("#mic").classList.remove("rec");
-    var txt = ($("#tin").value || "").trim();
+    vStopRecStyle();
+    var txt = (inp.value || "").trim();
     if (!txt) { setMicTip("点一下，说出你想记的事"); return; }
-    updatePreview();
-    if (DB.settings.autoSave) {
+    /* 别的页面：说完直接交给自己那一套（记账 / 存知识库 / 记进合集） */
+    if (voiceDone) { var fn = voiceDone; fn(txt); return; }
+    if (voiceTarget === "#tin") updatePreview();
+    if (voiceTarget === "#tin" && DB.settings.autoSave) {
       commitDraft();
       setMicTip("点一下，说出你想记的事");
+    } else if (voiceTarget === "#todoIn") {
+      toast("说完了，点「加」或按回车贴上去");
     } else {
       setMicTip("已转成文字，确认后点「记下来」");
     }
@@ -3073,6 +3476,8 @@ function toast(msg, actLabel, actFn) {
     a.style.display = "none";
     a.onclick = null;
   }
+  /* 弹层开着就把提示挪到屏幕上方，别压住下面那排按钮 */
+  t.classList.toggle("up", $("#sheet").classList.contains("on"));
   t.classList.add("on");
   clearTimeout(state.toastTimer);
   state.toastTimer = setTimeout(function () { t.classList.remove("on"); }, actLabel ? 5200 : 2600);
@@ -3087,6 +3492,7 @@ var VIEWS = {
   kb:     { el: "v-kb",     nav: "kb"    },
   me:     { el: "v-me",     nav: "me"    },
   time:   { el: "v-time",   nav: "home"  },
+  topic:  { el: "v-topic",  nav: "me"    },
   remind: { el: "v-remind", nav: "me"    },
   feed:   { el: "v-feed",   nav: "me"    }
 };
@@ -3104,6 +3510,11 @@ function go(tab) {
   if (tab === "todo") renderTodo();
   if (tab === "kb") renderKb();
   if (tab === "remind") renderRemind();
+  if (tab === "topic") {
+    /* 第一次进来默认停在"你现在正在记的那个合集"，不然容易记错地方 */
+    if (!state.topicTouched) state.topicTopic = curTopic();
+    renderTopic();
+  }
   if (tab === "me") renderMe();
   if (tab === "home") renderHome();
 }
@@ -3124,6 +3535,17 @@ function commitDraft() {
     }
     return rec;
   }
+  var useTd = draft.todo === null ? looksLikeTodo(v) : draft.todo;
+  if (useTd) {
+    var dueT = parseWhen(v).due;
+    var td = addTodo(v, dueT);
+    resetDraft(); renderAll();
+    if (td) {
+      toast("已加到待办" + (dueT ? " · " + fmtDue(dueT) : ""), "去待办", function () { go("todo"); });
+    }
+    return td;
+  }
+
   var note = addNote(v, { cat: draft.cat, due: draft.due });
   resetDraft(); renderAll();
   if (note) {
@@ -3132,6 +3554,94 @@ function commitDraft() {
     });
   }
   return note;
+}
+
+/* ================== 每个页面都能直接说一句 ==================
+   mode: "money" 账本 · "kb" 知识库 · "topic" 合集 */
+function quickSay(text, mode) {
+  var v = String(text || "").trim();
+  if (!v) return null;
+
+  /* —— 账本页：认得出金额就落账，认不出别硬塞 —— */
+  if (mode === "money") {
+    var p = parseMoney(v);
+    if (p) {
+      var rec = addMoney({ amt: p.amt, dir: p.dir, cat: p.cat, t: v });
+      renderMoney(); renderBadge();
+      var m = mcat(rec.cat);
+      toast("记下 " + m.n + " " + (rec.dir === "in" ? "+" : "−") + "¥" + fmtMoney(rec.amt), "改一下", function () {
+        openMoneySheet(rec.id);
+      });
+      return rec;
+    }
+    if (looksLikeTodo(v)) {
+      var td0 = addTodo(v, parseWhen(v).due);
+      renderTodo(); renderBadge();
+      toast("没听出金额，先加进待办了", "去看看", function () { go("todo"); });
+      return td0;
+    }
+    var n0 = addNote(v, {});
+    renderAll();
+    toast("没听出金额，先当一条记录存了", "去改", function () { openDetail(n0.id); });
+    return n0;
+  }
+
+  /* —— 知识库页：说一句就是一条，标题取前 24 个字 —— */
+  if (mode === "kb") {
+    var it = addKb({ kind: "text", title: v.slice(0, 24), body: v });
+    renderKb(); renderAll();
+    if (it) toast("存进知识库了", "加标签", function () { openKbEdit(it.id); });
+    return it;
+  }
+
+  /* —— 合集页：钱进账本、要做的事进待办、其余进记录。
+        归到"正在看的那一栏"，不是左上角设的那个 —— 看的和记的要一致 —— */
+  var tpGo = state.topicTopic || "";
+  var nm = tpGo || "日常";
+
+  var p2 = parseMoney(v);
+  if (p2) {
+    var r2 = addMoney({ amt: p2.amt, dir: p2.dir, cat: p2.cat, t: v }, 0, tpGo);
+    renderAll(); if (state.tab === "topic") renderTopic();
+    var m2 = mcat(r2.cat);
+    toast("记了一笔 " + m2.n + " " + (r2.dir === "in" ? "+" : "−") + "¥" + fmtMoney(r2.amt), "改一下", function () {
+      openMoneySheet(r2.id);
+    });
+    return r2;
+  }
+  if (looksLikeTodo(v)) {
+    var t2 = addTodo(v, parseWhen(v).due, tpGo);
+    renderAll(); if (state.tab === "topic") renderTopic();
+    toast("加进「" + nm + "」的待办了");
+    return t2;
+  }
+  var n2 = addNote(v, { tp: tpGo });
+  renderAll(); if (state.tab === "topic") renderTopic();
+  toast("已记到「" + nm + "」", "整理成一篇", function () { openDigest(tpGo); });
+  return n2;
+}
+
+/* 把某个输入框 + 麦克风 + 提交按钮接起来（三处复用同一套） */
+function bindSayBar(inputId, micId, goId, mode) {
+  var inp = $("#" + inputId), mic = $("#" + micId), go = $("#" + goId);
+  if (!inp || !mic || !go) return;
+
+  function submit() {
+    var v = (inp.value || "").trim();
+    if (!v) { inp.focus(); toast("先说一句，或者打几个字"); return; }
+    inp.value = "";
+    quickSay(v, mode);
+  }
+  go.onclick = submit;
+  inp.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); submit(); }
+  });
+  mic.onclick = function () {
+    voiceTarget = "#" + inputId;
+    voiceBtn = "#" + micId;
+    voiceDone = function (txt) { inp.value = txt; if (DB.settings.autoSave) submit(); };
+    startVoice();
+  };
 }
 
 function bind() {
@@ -3164,12 +3674,25 @@ function bind() {
     var inp = $("#todoIn");
     var v = (inp.value || "").trim();
     if (!v) return;
-    addTodo(v);
+    var td = addTodo(v, parseWhen(v).due);
     inp.value = "";
     renderTodo(); renderBadge();
-    toast("贴上了");
+    toast("贴上了" + (td && td.due ? " · " + fmtDue(td.due) : ""));
   }
   $("#todoAddBtn").onclick = addTodoFromInput;
+
+  /* ---- 合集 / 旅行手账 ---- */
+  $("#topicBtn").onclick = openTopicSheet;
+  $("#topicNew").onclick = openTopicSheet;
+  $("#topicGo").onclick = function () { state.topicTopic = curTopic(); go("topic"); };
+  $("#topicGen").onclick = function () { openDigest(state.topicTopic || ""); };
+  $("#topicTabs").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-tpc]") : null;
+    if (!b) return;
+    state.topicTopic = b.getAttribute("data-tpc") || "";
+    state.topicTouched = true; /* 手动选过就按你选的，别每次进来都被重置 */
+    renderTopic();
+  });
   $("#todoIn").addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); addTodoFromInput(); }
   });
@@ -3202,7 +3725,17 @@ function bind() {
     if (c) openKbDetail(c.getAttribute("data-kb"));
   });
 
-  $("#mic").onclick = startVoice;
+  voiceTarget = "#tin"; voiceBtn = "#mic"; voiceDone = null;
+  $("#mic").onclick = function () { voiceTarget = "#tin"; voiceBtn = "#mic"; voiceDone = null; startVoice(); };
+  $("#todoMic").onclick = function () {
+    voiceTarget = "#todoIn"; voiceBtn = "#todoMic"; voiceDone = null;
+    startVoice();
+  };
+
+  /* 账本 / 知识库 / 合集：都一样有"打字 + 说话" */
+  bindSayBar("mSayIn", "mSayMic", "mSayGo", "money");
+  bindSayBar("kbSayIn", "kbSayMic", "kbSayGo", "kb");
+  bindSayBar("tpSayIn", "tpSayMic", "tpSayGo", "topic");
 
   $("#tin").addEventListener("input", function () {
     draft.cat = null;
@@ -3234,7 +3767,7 @@ function bind() {
   $$("#samples .smp").forEach(function (b) {
     b.onclick = function () {
       $("#tin").value = b.textContent;
-      draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false;
+      draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false; draft.todo = null;
       updatePreview();
       $("#tin").focus();
     };
@@ -3394,7 +3927,7 @@ function bind() {
     };
   $("#clrNo").onclick = closeSheet;
 
-  $("#pickImg").onclick = function () { $("#imgInput").click(); };
+  /* 截图：<label for> 原生触发文件选择器，iOS 主屏里也能用 */
   $("#imgInput").onchange = function () {
     if (this.files && this.files[0]) saveImageNote(this.files[0]);
     this.value = "";
