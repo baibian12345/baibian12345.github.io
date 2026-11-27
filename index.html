@@ -279,6 +279,19 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
 .stick.done .tx{color:var(--ink3);text-decoration:line-through}
 .stick .del{color:rgba(0,0,0,.28);font-size:16px;padding:0 4px;line-height:1}
 
+/* ---- 待办按科目分组 ---- */
+.tgh{display:flex;align-items:center;gap:8px;margin:16px 2px 9px;cursor:pointer}
+.tgh:first-child{margin-top:2px}
+.tgh .tbar{width:3px;height:13px;border-radius:2px;flex:0 0 3px}
+.tgh .tn{font-size:13.5px;font-weight:700;letter-spacing:.2px}
+.tgh .tgcat{font-size:10.5px;padding:1.5px 7px;border-radius:999px;font-weight:600}
+.tgh .tnum{margin-left:auto;font-size:11.5px;color:var(--ink3)}
+.stick .tsub{display:inline-block;font-size:10.5px;padding:1.5px 7px;border-radius:999px;margin-left:6px;vertical-align:1px;white-space:nowrap}
+.tfilter{display:flex;gap:7px;overflow-x:auto;padding:0 0 12px;-webkit-overflow-scrolling:touch}
+.tfilter::-webkit-scrollbar{display:none}
+.tfilter button{flex:0 0 auto;font-size:12.5px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink2)}
+.tfilter button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
 /* ---- 知识库 ---- */
 .kb{background:#fff;border-radius:16px;padding:12px;margin-bottom:10px;display:flex;gap:12px;box-shadow:0 1px 2px rgba(20,24,32,.04)}
 .kb .th{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#F2F4F7;flex:0 0 64px;display:block}
@@ -399,6 +412,7 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
         <button class="smp">发工资 8000</button>
         <button class="smp">明天下午去买衣服</button>
         <button class="smp">明天下午三点提醒我交房租</button>
+        <button class="smp">2 分钟后提醒我关火</button>
         <button class="smp">今天和同事聊了下个版本的方向</button>
       </div>
 
@@ -455,7 +469,15 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
         </button>
         <button id="todoAddBtn">加</button>
       </div>
-      <div class="tdhint">说一句也行，比如「明天下午去买衣服」—— 会记成待办，做完点左边方框打勾。</div>
+      <div class="tdhint">说一句也行，比如「明天下午去买衣服」—— 会记成待办，自动分到「生活 / 采购」这样的科目里；做完点左边方框打勾。</div>
+      <div class="tfilter" id="todoFilter">
+        <button data-tf="all" class="on">全部</button>
+        <button data-tf="work">工作</button>
+        <button data-tf="life">生活</button>
+        <button data-tf="fun">兴趣</button>
+        <button data-tf="health">健康</button>
+        <button data-tf="money">财务</button>
+      </div>
       <div class="h2" style="margin-top:0">还没做 <span class="link" id="todoCount">0 件</span></div>
       <div id="todoList"></div>
       <div class="h2" id="todoDoneH" style="display:none">已完成</div>
@@ -581,8 +603,9 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
         <button class="smp" id="addSched" style="flex:1;justify-content:center;padding:11px 0">＋ 周期事务</button>
       </div>
       <div class="bwarn" style="margin-bottom:12px">
-        应用开着的时候，到点会<b>整屏弹出来</b>。<br>
-        但网页被关掉以后<b>叫不醒手机</b>（苹果不给网页这个权限）。要真正准点响：点开这条提醒 → <b>「加入手机系统日历」</b>，之后由闹钟 App 负责。
+        应用开着的时候，到点会<b>整屏弹出来，还会响三声</b>（第一次进应用后点一下屏幕，声音才解锁）。<br>
+        短计时（2 分钟、10 分钟这种）只要屏幕还亮着、页面没被切走，<b>一定会响</b>；快到点时我会自动申请"别让屏幕睡过去"。<br>
+        但整个网页被划掉、或者手机锁屏放久了，<b>叫不醒手机</b>（苹果不给网页这个权限）。那种场景请点开提醒 → <b>「加入手机系统日历」</b>，交给系统闹钟。
       </div>
       <div id="remindList"></div>
     </section>
@@ -680,6 +703,10 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
         <div class="row">
           <div><div class="rl">版本</div><div class="rd" id="verDesc">v1.2.0 · 数据格式 v1</div></div>
           <button class="chip" id="upBtn" style="background:#F4F6F9;color:#6C7380">升级须知</button>
+        </div>
+        <div class="row">
+          <div><div class="rl">检查更新</div><div class="rd" id="updDesc">新版装好会自动提示；手机一直跑旧代码就点这里</div></div>
+          <button class="chip" id="updBtn" style="background:#F4F6F9;color:#6C7380">检查</button>
         </div>
         <div class="row" id="rowInstall" style="display:none">
           <div><div class="rl">安装到手机桌面</div><div class="rd">装好后点图标直接进，全屏无地址栏</div></div>
@@ -786,10 +813,36 @@ var KW = {
   money: ["支出","收入","工资","记账","预算","还信用卡","转账","理财","基金","房贷","保费","交税","存款","账单","还款","零花","红包","报账","发工资","股票","定投","花呗","账单日","还款日","省钱","报销单"]
 };
 
+/* ================== 待办科目 ==================
+   一条待办先判「工作 / 生活」，再看落在哪个科目。
+   c:  这个科目属于哪个大类（对应 CATS）
+   kw: 判断用的词，长词权重更高 */
+var TSUB = {
+  client:  { n: "客户", cs: "work",   kw: ["客户","甲方","乙方","对接","拜访","回访","签约","续约","报价","商务","需求方","外包","验收方","招标"] },
+  project: { n: "项目", cs: "work",   kw: ["项目","需求","排期","上线","版本","评审","联调","测试","验收","交付","里程碑","进度","方案","PRD","bug","工单","排bug","改稿"] },
+  meeting: { n: "会议", cs: "work",   kw: ["会议","开会","例会","周会","碰头","复盘","汇报","述职","路演","宣讲","培训","分享会","头脑风暴","电话会"] },
+  report:  { n: "材料", cs: "work",   kw: ["周报","日报","月报","汇报材料","PPT","文档","报表","总结","数据","分析","纪要","台账"] },
+  hr:      { n: "人事", cs: "work",   kw: ["面试","招聘","入职","离职","转正","考勤","请假","调休","绩效","工资","社保","公积金","背调","offer","裁员","述职"] },
+  flow:    { n: "流程", cs: "work",   kw: ["审批","报销","签批","盖章","合同","发票","立项","走流程","邮件","回复","归档","用印","对账"] },
+  buy:     { n: "采购", cs: "life",   kw: ["买","购","超市","菜场","买菜","水果","快递","取件","寄件","退货","换货","下单","淘宝","京东","拼多多","日用品","衣服","裤子","鞋","包","纸巾"] },
+  chore:   { n: "家务", cs: "life",   kw: ["打扫","收拾","整理","洗衣","洗","晾","洗碗","垃圾","擦","扫","拖","修","换","装","搬家","浇花","喂","铲屎","收纳","大扫除"] },
+  family:  { n: "家人", cs: "life",   kw: ["孩子","儿子","女儿","爸妈","父母","老婆","老公","家里","接","送","家长会","学校","老师","生日","陪","看望","岳父","岳母"] },
+  bill:    { n: "缴费", cs: "life",   kw: ["房租","水电","燃气","物业","话费","宽带","充电","充值","续费","还款","还信用卡","花呗","交税","保险","保费","年检","车险"] },
+  affair:  { n: "事务", cs: "life",   kw: ["证件","户口","银行","社保","医保","签证","护照","公证","派出所","社区","居委","换证","办证","盖章","快递柜"] },
+  trip:    { n: "出行", cs: "life",   kw: ["机票","高铁","火车","订票","酒店","民宿","行程","接机","送机","打车","租车","导航","出发","出差","回程"] },
+  social:  { n: "社交", cs: "life",   kw: ["聚餐","请客","婚礼","随礼","份子","聚会","约饭","见面","送礼","探望","同学","团建"] },
+  health:  { n: "健康", cs: "health", kw: ["体检","挂号","看病","复诊","吃药","牙医","洗牙","疫苗","健身","跑步","游泳","瑜伽","理疗","运动","早睡","减肥","拔牙"] },
+  study:   { n: "学习", cs: "fun",    kw: ["读书","看书","课程","网课","学习","背单词","练","考试","报名","复习","预习","作业","论文","练琴"] },
+  money:   { n: "理财", cs: "money",  kw: ["理财","基金","股票","定投","转账","预算","账单","存款","投资","记账","还款日","账单日"] },
+  other:   { n: "其他", cs: "life",   kw: [] }
+};
+var TORD = ["client","project","meeting","report","hr","flow","buy","chore","family","bill","affair","trip","social","health","study","money","other"];
+function tsub(k) { return TSUB[k] || TSUB.other; }
+
 var RKEY = "lifeKeeper.v1";
 var VERKEY = "lifeKeeper.appVer";
-var APP_VER = "2.4.0";
-var DATA_VER = 3;
+var APP_VER = "2.5.0";
+var DATA_VER = 4;
 /* 安全版：CSP 里 connect-src 已经是 'none'，浏览器层面禁止一切外发请求。
    这里再加一层代码级的闸，双保险——就算以后 CSP 被谁放宽了，代码也不会去发。
    要恢复天气/AI 快讯：把这里改成 false，同时把 CSP 的 connect-src 换回白名单。 */
@@ -838,7 +891,7 @@ function mcat(key) { return MCAT[key] || MCAT.other; }
 var DB = null;
 var state = { tab: "home", filter: "all", q: "", sheetId: null, pinBuf: "", pinMode: "unlock", toastTimer: null,
               mPeriod: "month", kbQ: "", kbTag: "", topicTopic: "", topicTouched: false,
-              topicView: "time", alarmIds: [] };
+              topicView: "time", alarmIds: [], tFilter: "all" };
 
 /* ================== 工具 ================== */
 function $(s, r) { return (r || document).querySelector(s); }
@@ -919,13 +972,17 @@ function migrate(d) {
     d.todos = Array.isArray(d.todos) ? d.todos : [];
     d.kb = Array.isArray(d.kb) ? d.kb : [];
   }
+  if (from < 4) {
+    /* v4：待办开始带「大类 + 科目」，老待办没有就先留空，load 完再补 */
+    d.tRules = Array.isArray(d.tRules) ? d.tRules : [];
+  }
   d.v = DATA_VER;
   return from;
 }
 function load() {
   var raw = null;
   try { raw = localStorage.getItem(RKEY); } catch (e) { raw = null; }
-  var d = { v: DATA_VER, notes: [], rules: [], settings: defSettings(), wx: null, news: null, sched: [], money: [], todos: [], kb: [] };
+  var d = { v: DATA_VER, notes: [], rules: [], settings: defSettings(), wx: null, news: null, sched: [], money: [], todos: [], kb: [], tRules: [] };
   if (raw) {
     try {
       var p = JSON.parse(raw);
@@ -940,6 +997,7 @@ function load() {
       d.money = Array.isArray(p.money) ? p.money : [];
       d.todos = Array.isArray(p.todos) ? p.todos : [];
       d.kb = Array.isArray(p.kb) ? p.kb : [];
+      d.tRules = Array.isArray(p.tRules) ? p.tRules : [];
       d.v = p.v || 1;
     } catch (e) {}
   }
@@ -949,6 +1007,13 @@ function load() {
   /* 第一次在 iPhone 上打开：默认走键盘语音，因为网页听写在主屏里大概率被拒 */
   if (isIOS() && !d.settings.voiceConsent) d.settings.voiceMode = "ime";
   DB = d;
+  /* 老待办没有科目：按文字补一次（只改内存，下次保存时落盘） */
+  d.todos.forEach(function (x) {
+    if (!x.k || !TSUB[x.k] || !x.c) {
+      var sb = classifyTodo(x.t);
+      x.k = sb.k; x.c = sb.c;
+    }
+  });
 }
 function save() {
   try {
@@ -996,6 +1061,56 @@ function learnRule(text, cat) {
   DB.rules = (DB.rules || []).filter(function (r) { return r.k !== kw; });
   DB.rules.unshift({ k: kw, c: cat });
   if (DB.rules.length > 300) DB.rules.length = 300;
+}
+
+/* ================== 待办科目判断 ==================
+   先看命中哪个科目，科目的 c 就是「工作 / 生活」；
+   一个词都没命中，再退回按大类词库猜，至少把工作/生活分开。 */
+function classifyTodo(text) {
+  var t = String(text || "");
+  var sc = {}, hit = {};
+  TORD.forEach(function (k) { sc[k] = 0; hit[k] = []; });
+
+  (DB && DB.tRules || []).forEach(function (r) {
+    if (r && r.k && t.indexOf(r.k) >= 0 && TSUB[r.s]) {
+      sc[r.s] = (sc[r.s] || 0) + 3;
+      hit[r.s].push(r.k);
+    }
+  });
+  TORD.forEach(function (k) {
+    (TSUB[k].kw || []).forEach(function (w) {
+      if (w && t.indexOf(w) >= 0) {
+        sc[k] += (w.length >= 2 ? 2 : 1);
+        hit[k].push(w);
+      }
+    });
+  });
+
+  var best = null, bv = 0;
+  TORD.forEach(function (k) { if (sc[k] > bv) { bv = sc[k]; best = k; } });
+
+  if (!best) {
+    /* 科目没认出来：用大类词库兜底，至少能分出工作 / 生活 */
+    var cl = classify(t);
+    var c = cl.cat === "work" ? "work" : cl.cat;
+    return { k: "other", c: c, conf: cl.conf, hits: [] };
+  }
+  var second = 0;
+  TORD.forEach(function (k) { if (k !== best && sc[k] > second) second = sc[k]; });
+  var conf = bv <= 1 ? 0.45 : Math.min(0.97, 0.5 + (bv - second) / (bv + 2.4));
+  return { k: best, c: TSUB[best].cs, conf: conf, hits: hit[best] };
+}
+
+/* 手动改过一次就记住这个说法，下次同样的话自动归到同一科目 */
+function learnSub(text, key) {
+  if (!TSUB[key]) return;
+  var t = String(text || "").replace(/[，。,.!！?？、；;：:\s]/g, "");
+  t = t.replace(/提醒我|提醒|记得|别忘|别忘了|叫我|帮我|一下|到时候|明天|后天|今天|下周|周末/g, "");
+  if (t.length < 2) return;
+  var kw = t.slice(0, 10);
+  DB.tRules = (DB.tRules || []).filter(function (r) { return r.k !== kw; });
+  DB.tRules.unshift({ k: kw, s: key });
+  if (DB.tRules.length > 300) DB.tRules.length = 300;
 }
 
 /* ================== 记账解析 ==================
@@ -1152,7 +1267,7 @@ function normalizeTime(t) {
   t = t.replace(/([零〇一二三四五六七八九十两]{1,3})(?=[点時时:：])/g, function (m) {
     var n = cn2n(m); return isNaN(n) ? m : String(n);
   });
-  t = t.replace(/([零〇一二三四五六七八九十两]{1,3})(?=(?:分钟|小时|天)后)/g, function (m) {
+  t = t.replace(/([零〇一二三四五六七八九十两]{1,3})\s*个?\s*(?=(?:分钟|分|小时|钟头|天)(?:后|以后|之后))/g, function (m) {
     var n = cn2n(m); return isNaN(n) ? m : String(n);
   });
   t = t.replace(/([一二三四五六七八九十]{1,2})(?=月)/g, function (m) {
@@ -1164,6 +1279,35 @@ function normalizeTime(t) {
   return t;
 }
 
+/* 「2分钟后」「2分钟的闹钟」「计时2分钟」「半小时后」——短时长的相对说法，
+   是闹钟不是日程，认得出来就按现在这个时刻往后推 */
+function parseDur(t) {
+  var s = String(t || "");
+  var m = s.match(/(\d{1,4})\s*个?\s*(分钟|分|小时|钟头|天)\s*(以后|之后|后)?/);
+  if (!m) {
+    /* 「计时三分钟」这种中文数字，normalizeTime 只在带"后"时才会换，这里补一下 */
+    var mc = s.match(/([零〇一二三四五六七八九十两]{1,3})\s*个?\s*(分钟|分|小时|钟头|天)\s*(以后|之后|后)?/);
+    if (mc) {
+      var cn = cn2n(mc[1]);
+      if (!isNaN(cn)) m = [mc[0], String(cn), mc[2], mc[3]];
+    }
+  }
+  if (!m) return 0;
+  var n = +m[1], unit = m[2], after = !!m[3];
+  var alarmWord = /闹钟|计时|倒计时|倒数|定时|叫醒|提醒|叫我|设个|设一个|定个/.test(s);
+  var bare = /^[就再等]?\s*\d{1,4}\s*(分钟|分|小时|钟头)$/.test(s.replace(/\s+/g, ""));
+  /* 说的是已经发生的事（吃了两分钟的饭）就别当闹钟 */
+  if (/吃了|看了|跑了|用了|等了|开了|睡了|聊了|走了|花了/.test(s) && !alarmWord) return 0;
+  if (!after && !alarmWord && !bare) return 0;
+  /* 提了日期就是在说日程，交给后面按钟点算 */
+  if (!after && /明天|后天|昨天|前天|下周|上周|本周|这周|周[一二三四五六日天]|\d{1,2}月/.test(s)) return 0;
+  var ms = unit === "天" ? n * 86400000 : (unit === "小时" || unit === "钟头") ? n * 3600000 : n * 60000;
+  if (!ms || ms <= 0) return 0;
+  if (ms > 30 * 86400000) return 0;
+  if (!after && ms > 24 * 3600000) return 0;
+  return ms;
+}
+
 function parseWhen(text, baseMs) {
   var refNow = baseMs || Date.now();
   var base = new Date(refNow);
@@ -1171,13 +1315,10 @@ function parseWhen(text, baseMs) {
   var out = { due: null, hasTime: false, hasDate: false, explicit: false };
   if (!t) return out;
 
-  var rm = t.match(/(\d{1,3})(分钟|小时|天)后/);
-  if (rm) {
-    var n = +rm[1], d0 = new Date(base);
-    if (rm[2] === "分钟") d0.setMinutes(d0.getMinutes() + n);
-    else if (rm[2] === "小时") d0.setHours(d0.getHours() + n);
-    else d0.setDate(d0.getDate() + n);
-    out.due = d0.getTime(); out.hasTime = true; out.hasDate = true; out.explicit = true;
+  var dur = parseDur(t);
+  if (dur) {
+    out.due = refNow + dur;
+    out.hasTime = true; out.hasDate = true; out.explicit = true; out.timer = true;
     return out;
   }
 
@@ -1341,10 +1482,12 @@ function moneyIn(period) { return DB.money.filter(function (x) { return inPeriod
 function moneyOut(period) { return DB.money.filter(function (x) { return inPeriod(x.ts, period) && x.dir === "out"; }); }
 function sumAmt(arr) { return arr.reduce(function (a, b) { return a + (Number(b.amt) || 0); }, 0); }
 
-function addTodo(text, due, tp) {
+function addTodo(text, due, tp, sub) {
   text = String(text || "").trim();
   if (!text) return null;
-  var td = { id: uid(), t: text, done: false, ts: Date.now(), doneTs: 0, due: Number(due) || 0 };
+  var sb = sub && TSUB[sub.k] ? sub : classifyTodo(text);
+  var td = { id: uid(), t: text, done: false, ts: Date.now(), doneTs: 0, due: Number(due) || 0,
+             c: sb.c || "life", k: TSUB[sb.k] ? sb.k : "other" };
   var tpv = tp !== undefined ? tp : DB.settings.topic;
   if (tpv) td.tp = tpv;
   DB.todos.unshift(td);
@@ -1436,6 +1579,7 @@ function noteHtml(n) {
       ? '<img class="thumb" alt="截图" src="' + n.imgData + '">'
       : (n.imgId ? '<div data-img="' + n.imgId + '"><div class="thumb" style="height:110px"></div></div>' : "")) +
     '<div class="meta">' + tagHtml(n.c) +
+    (n.k ? '<span class="tg">' + tsub(n.k).n + "</span>" : "") +
     (n.tp ? '<span class="tg">' + esc(n.tp) + "</span>" : "") + dueH +
     "<span>" + fmtStamp(n.ts) + "</span></div></div></div>";
 }
@@ -1522,7 +1666,10 @@ function renderFilters() {
 
 function renderRemind() {
   var now = Date.now();
-  var open = DB.notes.filter(function (n) { return n.due && !n.done; }).sort(function (a, b) { return a.due - b.due; });
+  /* 带时间的待办和"提醒我"的记录一样会响，所以这里一起列 */
+  var open = DB.notes.filter(function (n) { return n.due && !n.done; })
+    .concat(DB.todos.filter(function (x) { return x.due && !x.done; }))
+    .sort(function (a, b) { return a.due - b.due; });
   var upcoming = open.filter(function (n) { return n.due > now; });
   var overdue = open.filter(function (n) { return n.due <= now; });
   var done = DB.notes.filter(function (n) { return n.done && n.due; }).slice(0, 8);
@@ -1555,7 +1702,8 @@ function renderMe() {
   var total = DB.notes.length;
   var weekStart = sod(Date.now()) - ((new Date().getDay() + 6) % 7) * 86400000;
   var week = DB.notes.filter(function (n) { return n.ts >= weekStart; }).length;
-  var due = DB.notes.filter(function (n) { return n.due && !n.done; }).length;
+  var due = DB.notes.filter(function (n) { return n.due && !n.done; }).length +
+            DB.todos.filter(function (x) { return x.due && !x.done; }).length;
   $("#stTotal").textContent = total;
   $("#stWeek").textContent = week;
   $("#stDue").textContent = due;
@@ -1839,11 +1987,64 @@ function openAlarm(items) {
   $("#alarmTime").textContent = hhmm(Date.now());
   $("#alarmList").innerHTML = items.map(function (n) {
     var c = CATS[n.c] || CATS.life;
-    return '<div class="aitem"><div class="ait">' + fmtStamp(n.due) + " · " + c.n + "</div>" + esc(alarmLabel(n.t)) + "</div>";
+    var late = Math.round((Date.now() - (n.due || Date.now())) / 60000);
+    var kind = n.conf === undefined ? "待办" : "提醒";
+    return '<div class="aitem"><div class="ait">' + fmtStamp(n.due) + " · " + c.n +
+      " · " + kind + (late >= 2 ? " · 迟了 " + late + " 分钟" : "") + "</div>" + esc(alarmLabel(n.t)) + "</div>";
   }).join("");
   $("#alarmSnooze").style.display = items.length ? "" : "none";
   $("#alarm").classList.add("on");
-  try { if (navigator.vibrate) navigator.vibrate([240, 120, 240]); } catch (e) {}
+  ringTone();
+  try { if (navigator.vibrate) navigator.vibrate([240, 120, 240, 120, 240]); } catch (e) {}
+}
+
+/* ================== 提示音 ==================
+   纯前端合成，不加载任何音频文件；第一次点屏幕时把音频上下文解锁，
+   之后到点就能"叮"三声（iOS 只有在用户碰过页面后才允许出声）。 */
+var AC = null;
+function unlockAudio() {
+  try {
+    var C = window.AudioContext || window.webkitAudioContext;
+    if (!C) return;
+    if (!AC) AC = new C();
+    if (AC.state === "suspended") AC.resume();
+  } catch (e) {}
+}
+function ringTone() {
+  if (!AC) return;
+  try {
+    var t0 = AC.currentTime;
+    for (var i = 0; i < 3; i++) {
+      var o = AC.createOscillator(), g = AC.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(880, t0 + i * 0.55);
+      g.gain.setValueAtTime(0.0001, t0 + i * 0.55);
+      g.gain.exponentialRampToValueAtTime(0.32, t0 + i * 0.55 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.55 + 0.42);
+      o.connect(g); g.connect(AC.destination);
+      o.start(t0 + i * 0.55); o.stop(t0 + i * 0.55 + 0.46);
+    }
+  } catch (e) {}
+}
+
+/* ================== 快到点时别让屏幕睡过去 ==================
+   网页没法在后台叫醒手机，但短计时（比如 2 分钟）只要屏幕亮着、页面没被切走，
+   就一定能响。到点前 15 分钟内申请一次 Wake Lock。 */
+var wakeLock = null, wakeWant = false;
+function keepAwake(on) {
+  wakeWant = !!on;
+  if (!navigator.wakeLock || !navigator.wakeLock.request) return;
+  if (on && !wakeLock) {
+    try {
+      navigator.wakeLock.request("screen").then(function (l) {
+        wakeLock = l;
+        l.addEventListener("release", function () { wakeLock = null; });
+      }).catch(function () {});
+    } catch (e) {}
+  } else if (!on && wakeLock) {
+    try { wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
 }
 function closeAlarm() {
   $("#alarm").classList.remove("on");
@@ -1896,25 +2097,59 @@ function openAlarmForm() {
 /* ================== 待办渲染 ================== */
 var STICK_COLORS = ["#FFF9E6", "#E9F7EF", "#E8F1FD", "#FDECF1", "#F4EDFB", "#E6F6F7"];
 function renderTodo() {
-  var und = DB.todos.filter(function (x) { return !x.done; });
-  var dn = DB.todos.filter(function (x) { return x.done; })
+  var f = state.tFilter || "all";
+  var und = DB.todos.filter(function (x) { return !x.done && (f === "all" || (x.c || "life") === f); });
+  var dn = DB.todos.filter(function (x) { return x.done && (f === "all" || (x.c || "life") === f); })
     .sort(function (a, b) { return (b.doneTs || 0) - (a.doneTs || 0); });
   $("#todoCount").textContent = und.length + " 件";
+  $$("#todoFilter button").forEach(function (b) {
+    b.classList.toggle("on", (b.getAttribute("data-tf") || "all") === f);
+  });
 
-  function stick(x, i) {
+  var seq = 0;
+  function stick(x, withTag) {
+    var sb = tsub(x.k), ct = CATS[x.c] || CATS.life;
+    var over = x.due && x.due <= Date.now() && !x.done;
+    var i = seq++;
+    var tag = withTag ? '<button class="tsub" data-tsub="' + x.id + '" style="background:' + ct.bg + ";color:" + ct.c + '">' + sb.n + "</button>" : "";
     return '<div class="stick' + (x.done ? " done" : "") + '" data-td="' + x.id + '" style="background:' +
       STICK_COLORS[i % STICK_COLORS.length] + '">' +
       '<div class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg></div>' +
-      '<div class="tx">' + esc(x.t) + (x.due ? '<span class="due">' + fmtDue(x.due) + "</span>" : "") + "</div>" +
+      '<div class="tx">' + esc(x.t) + tag +
+        (x.due ? '<span class="due' + (over ? " over" : "") + '">' + (over ? "已过 " : "⏰ ") + fmtDue(x.due) + "</span>" : "") +
+      "</div>" +
       '<button class="del" data-deltodo="' + x.id + '">×</button>' +
       "</div>";
   }
 
+  /* 按科目分组：先工作类的科目，再生活，再兴趣/健康/财务 */
+  var g = {}, order = [];
+  und.forEach(function (x) {
+    var k = TSUB[x.k] ? x.k : "other";
+    if (!g[k]) { g[k] = []; order.push(k); }
+    g[k].push(x);
+  });
+  order.sort(function (a, b) { return TORD.indexOf(a) - TORD.indexOf(b); });
+
   $("#todoList").innerHTML = und.length
-    ? und.map(stick).join("")
-    : '<div class="empty">还没有待办<br>上面写一句，按回车就贴上</div>';
+    ? order.map(function (k) {
+        var list = g[k].slice().sort(function (a, b) {
+          if (a.due && b.due) return a.due - b.due;
+          if (a.due) return -1;
+          if (b.due) return 1;
+          return b.ts - a.ts;
+        });
+        var ct = CATS[TSUB[k].cs] || CATS.life;
+        var sameName = ct.n === TSUB[k].n;
+        return '<div class="tgh" data-tgk="' + k + '"><i class="tbar" style="background:' + ct.c + '"></i>' +
+          '<span class="tn">' + TSUB[k].n + "</span>" +
+          (sameName ? "" : '<span class="tgcat" style="background:' + ct.bg + ";color:" + ct.c + '">' + ct.n + "</span>") +
+          '<span class="tnum">' + list.length + " 件 · 点这里改</span></div>" +
+          list.map(function (x) { return stick(x, false); }).join("");
+      }).join("")
+    : '<div class="empty">' + (DB.todos.length ? "这个大类下没有待办" : "还没有待办<br>上面写一句，按回车就贴上") + "</div>";
   $("#todoDoneH").style.display = dn.length ? "" : "none";
-  $("#todoDone").innerHTML = dn.slice(0, 40).map(stick).join("");
+  $("#todoDone").innerHTML = dn.slice(0, 40).map(function (x) { return stick(x, true); }).join("");
 }
 
 /* ================== 合集 / 旅行手账 ================== */
@@ -2500,7 +2735,7 @@ function renderBadge() {
 }
 
 /* ================== 首页预览 ================== */
-var draft = { cat: null, due: undefined, money: null, asNote: false, todo: null };
+var draft = { cat: null, due: undefined, money: null, asNote: false, todo: null, sub: null };
 
 function updatePreview() {
   var v = $("#tin").value.trim();
@@ -2509,7 +2744,7 @@ function updatePreview() {
     box.innerHTML = "";
     btn.disabled = true;
     btn.textContent = "记下来";
-    draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false; draft.todo = null;
+    draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false; draft.todo = null; draft.sub = null;
     return;
   }
 
@@ -2538,6 +2773,7 @@ function updatePreview() {
 
   var cls = classify(v);
   var cat = draft.cat || cls.cat;
+  var pw = parseWhen(v);
   var due = draft.due === undefined ? autoDue(v) : draft.due;
   draft.due = due;
 
@@ -2546,13 +2782,17 @@ function updatePreview() {
   var isTd = draft.todo === null ? autoTd : draft.todo;
 
   if (isTd) {
-    var ht = '<button class="chip" id="pickTodo" style="background:#E8F0FF;color:#2B58C8">' +
-        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>待办</button>' +
+    var sb = draft.sub || classifyTodo(v);
+    var sct = CATS[sb.c] || CATS.life;
+    var ht = '<button class="chip" id="pickTodo" style="background:' + sct.bg + ";color:" + sct.c + '">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>' +
+        "待办 · " + sct.n + " / " + tsub(sb.k).n + "</button>" +
       (due ? '<span class="due">⏰ ' + fmtDue(due) + "</span>" : '<span class="pmeta">没写时间的，随时可以做</span>') +
       '<button class="smp" id="asRec" style="padding:5px 10px">改存成记录</button>';
     box.innerHTML = ht;
     btn.textContent = "加到待办";
     btn.disabled = false;
+    $("#pickTodo").onclick = function () { openSubSheet(null); };
     $("#asRec").onclick = function () { draft.todo = false; updatePreview(); };
     return;
   }
@@ -2560,13 +2800,16 @@ function updatePreview() {
   var c = CATS[cat];
   var h = '<button class="chip" id="pickCat" style="background:' + c.bg + ";color:" + c.c + '">' +
     '<span class="dot"></span>' + c.n + " · 点击改</button>";
-  if (due) h += '<span class="due">⏰ ' + fmtDue(due) + "</span>";
+  if (due && pw.timer && due - Date.now() < 24 * 3600000) {
+    /* 短时长的这种就是闹钟，别按日程去理解 */
+    h += '<span class="due" style="background:#FFF1E8;color:#E8590C">🔔 闹钟 ' + fmtHM(due) + "</span>";
+  } else if (due) h += '<span class="due">⏰ ' + fmtDue(due) + "</span>";
   else h += '<span class="pmeta">未设提醒</span>';
   if (!draft.cat && cls.conf > 0 && cls.conf < 0.6) h += '<span class="pmeta">· 我不太确定，帮我确认下</span>';
   if (mny) h += '<button class="smp" id="asMoney" style="padding:5px 10px">改按记账存</button>';
   if (!autoTd) h += '<button class="smp" id="asTd" style="padding:5px 10px">改加到待办</button>';
   box.innerHTML = h;
-  btn.textContent = "记下来";
+  btn.textContent = (due && pw.timer && due - Date.now() < 24 * 3600000) ? "设闹钟 · " + fmtHM(due) : "记下来";
   btn.disabled = false;
 
   var pk = $("#pickCat");
@@ -2606,7 +2849,7 @@ function openMoneyDraftSheet() {
 
 function resetDraft() {
   $("#tin").value = "";
-  draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false; draft.todo = null;
+  draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false; draft.todo = null; draft.sub = null;
   updatePreview();
 }
 
@@ -2649,6 +2892,85 @@ function openCatSheet(text) {
       }
     };
   });
+}
+
+/* 改一条待办的科目：工作 / 生活 分开列，选完记住这个说法 */
+var SUB_GROUPS = [
+  { c: "work",   ks: ["client", "project", "meeting", "report", "hr", "flow"] },
+  { c: "life",   ks: ["buy", "chore", "family", "bill", "affair", "trip", "social", "other"] },
+  { c: "health", ks: ["health"] },
+  { c: "fun",    ks: ["study"] },
+  { c: "money",  ks: ["money"] }
+];
+
+function openSubPicker(cur, title, sub, onPick) {
+  var h = "<h3>" + title + '</h3><div class="sb">' + sub + "</div>";
+  SUB_GROUPS.forEach(function (g) {
+    var ct = CATS[g.c];
+    h += '<div class="lab" style="display:flex;align-items:center;gap:6px">' +
+      '<span style="width:3px;height:12px;border-radius:2px;background:' + ct.c + ';display:inline-block"></span>' +
+      ct.n + "</div>" +
+      '<div class="catpick">' + g.ks.map(function (k) {
+        var on = k === cur;
+        return '<button data-sk="' + k + '" class="' + (on ? "on" : "") + '"' +
+          (on ? ' style="border-color:' + ct.c + ";color:" + ct.c + '"' : "") + ">" + TSUB[k].n + "</button>";
+      }).join("") + "</div>";
+  });
+  h += '<div style="margin-top:16px"><button class="btn line" id="skBack">不改了</button></div>';
+  openSheet(h);
+  $$("#sheetBody [data-sk]").forEach(function (b) {
+    b.onclick = function () { onPick(b.getAttribute("data-sk")); };
+  });
+  $("#skBack").onclick = closeSheet;
+}
+
+function openSubSheet(id) {
+  var td = id ? getTodo(id) : null;
+  var cur = id ? (td && td.k) : (draft.sub && draft.sub.k);
+  openSubPicker(cur, "这条算哪一类", "先分工作还是生活，再落到具体科目；选一次我就记住这个说法", function (k) {
+    if (td) {
+      learnSub(td.t, k);
+      td.k = k; td.c = TSUB[k].cs;
+      save(); closeSheet(); renderTodo(); renderBadge();
+      toast("已归到「" + CATS[td.c].n + " · " + TSUB[k].n + "」");
+    } else {
+      draft.sub = { k: k, c: TSUB[k].cs };
+      closeSheet(); updatePreview();
+    }
+  });
+}
+
+/* 点分组标题：把这一组一起挪到别的科目去 */
+function openSubSheetGroup(key) {
+  var list = DB.todos.filter(function (x) { return !x.done && (TSUB[x.k] ? x.k : "other") === key; });
+  if (!list.length) return;
+  openSubPicker(key, "「" + TSUB[key].n + "」这组改成哪一类",
+    "这一组有 " + list.length + " 条，选完一起挪过去", function (k) {
+      list.forEach(function (x) { x.k = k; x.c = TSUB[k].cs; });
+      if (list.length === 1) learnSub(list[0].t, k);
+      save(); closeSheet(); renderTodo();
+      toast("已挪到「" + CATS[TSUB[k].cs].n + " · " + TSUB[k].n + "」");
+    });
+}
+
+/* 提醒页里点到一条待办：给个轻量弹层，改科目或划掉 */
+function openTodoDetail(id) {
+  var td = getTodo(id);
+  if (!td) return;
+  var sb = tsub(td.k), ct = CATS[td.c] || CATS.life;
+  openSheet(
+    "<h3>" + esc(td.t) + '</h3><div class="sb">' + ct.n + " · " + sb.n +
+      (td.due ? " · " + fmtDue(td.due) : "") + "</div>" +
+    '<div style="display:flex;gap:8px;margin-top:18px">' +
+      '<button class="btn line" id="tdSub" style="flex:1">改科目</button>' +
+      '<button class="btn brand" id="tdDone" style="flex:1">' + (td.done ? "标记未做" : "做完了") + "</button>" +
+    "</div>"
+  );
+  $("#tdSub").onclick = function () { closeSheet(); openSubSheet(id); };
+  $("#tdDone").onclick = function () {
+    toggleTodo(id); closeSheet(); renderAll();
+    toast(td.done ? "已划掉" : "又放回未做");
+  };
 }
 
 function openDetail(id) {
@@ -3597,14 +3919,25 @@ function renderBrief() {
   });
 }
 
-/* ================== 提醒轮询 ================== */
+/* ================== 提醒轮询 ==================
+   记录（说了"提醒我"的那种）和待办（带时间的）都算，两类都会响。
+   页面被切走再回来时，错过的也会补响一次，并在弹层里标"迟了几分钟"。 */
+function soonDue() {
+  var now = Date.now(), lim = now + 15 * 60000;
+  function soon(x) { return x.due && !x.done && !x.nf && x.due > now && x.due <= lim; }
+  return DB.notes.some(soon) || DB.todos.some(soon);
+}
+
 function checkDue() {
   var now = Date.now(), hit = [];
   DB.notes.forEach(function (n) {
     if (n.due && !n.done && !n.nf && n.due <= now) { n.nf = 1; hit.push(n); }
   });
-  if (!hit.length) return;
-  save(); renderRemind(); renderHome(); renderBadge();
+  DB.todos.forEach(function (t) {
+    if (t.due && !t.done && !t.nf && t.due <= now) { t.nf = 1; hit.push(t); }
+  });
+  if (!hit.length) { keepAwake(soonDue()); return; }
+  save(); renderRemind(); renderHome(); renderBadge(); renderTodo(); keepAwake(false);
   hit.forEach(function (n) {
     if (DB.settings.notify && ("Notification" in window) && Notification.permission === "granted") {
       try { new Notification("到点了：" + (CATS[n.c] || CATS.life).n, { body: n.t, tag: n.id }); } catch (e) {}
@@ -3945,20 +4278,28 @@ function commitDraft() {
   var useTd = draft.todo === null ? looksLikeTodo(v) : draft.todo;
   if (useTd) {
     var dueT = parseWhen(v).due;
-    var td = addTodo(v, dueT);
+    var td = addTodo(v, dueT, undefined, draft.sub);
     resetDraft(); renderAll();
     if (td) {
-      toast("已加到待办" + (dueT ? " · " + fmtDue(dueT) : ""), "去待办", function () { go("todo"); });
+      var sb = tsub(td.k);
+      toast("已加到待办 · " + (CATS[td.c] || CATS.life).n + " / " + sb.n + (dueT ? " · " + fmtDue(dueT) : ""), "去待办", function () { go("todo"); });
     }
     return td;
   }
 
   var note = addNote(v, { cat: draft.cat, due: draft.due });
+  var isTimer = !!(parseWhen(v).timer && note && note.due && note.due - Date.now() < 24 * 3600000);
   resetDraft(); renderAll();
   if (note) {
-    toast("已记下 · " + CATS[note.c].n + (note.due ? " · " + fmtDue(note.due) : ""), "改分类", function () {
-      openDetail(note.id);
-    });
+    if (isTimer) {
+      toast("闹钟已设 · " + fmtHM(note.due) + " 响，别锁屏、别关掉这个页面", "看看", function () {
+        go("remind");
+      });
+    } else {
+      toast("已记下 · " + CATS[note.c].n + (note.due ? " · " + fmtDue(note.due) : ""), "改分类", function () {
+        openDetail(note.id);
+      });
+    }
   }
   return note;
 }
@@ -4106,6 +4447,12 @@ function bind() {
     toast("贴上了" + (td && td.due ? " · " + fmtDue(td.due) : ""));
   }
   $("#todoAddBtn").onclick = addTodoFromInput;
+  $("#todoFilter").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-tf]") : null;
+    if (!b) return;
+    state.tFilter = b.getAttribute("data-tf") || "all";
+    renderTodo();
+  });
 
   /* ---- 合集 / 旅行手账 ---- */
   $("#topicBtn").onclick = openTopicSheet;
@@ -4131,6 +4478,12 @@ function bind() {
     $(sel).addEventListener("click", function (e) {
       var del = e.target.closest ? e.target.closest("[data-deltodo]") : null;
       if (del) { delTodo(del.getAttribute("data-deltodo")); renderTodo(); renderBadge(); return; }
+      /* 点科目小标签 = 改分类，别顺手把这条勾成完成了 */
+      var sub = e.target.closest ? e.target.closest("[data-tsub]") : null;
+      if (sub) { openSubSheet(sub.getAttribute("data-tsub")); return; }
+      /* 点分组标题 = 整组挪到别的科目 */
+      var gk = e.target.closest ? e.target.closest("[data-tgk]") : null;
+      if (gk) { openSubSheetGroup(gk.getAttribute("data-tgk")); return; }
       var st = e.target.closest ? e.target.closest("[data-td]") : null;
       if (st) {
         var td = toggleTodo(st.getAttribute("data-td"));
@@ -4198,7 +4551,7 @@ function bind() {
   $$("#samples .smp").forEach(function (b) {
     b.onclick = function () {
       $("#tin").value = b.textContent;
-      draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false; draft.todo = null;
+      draft.cat = null; draft.due = undefined; draft.money = null; draft.asNote = false; draft.todo = null; draft.sub = null;
       updatePreview();
       $("#tin").focus();
     };
@@ -4219,7 +4572,11 @@ function bind() {
       return;
     }
     var n = e.target.closest ? e.target.closest(".note") : null;
-    if (n) { openDetail(n.getAttribute("data-id")); }
+    if (n) {
+      var nid = n.getAttribute("data-id");
+      if (getNote(nid)) openDetail(nid);
+      else openTodoDetail(nid);
+    }
     var f = e.target.closest ? e.target.closest(".fchip") : null;
     if (f) { state.filter = f.getAttribute("data-f"); renderFilters(); renderTimeline(); }
   });
@@ -4392,15 +4749,19 @@ function bind() {
   if ($("#netWhy2")) $("#netWhy2").onclick = openNetOffSheet;
 
   $("#upBtn").onclick = openUpgradeSheet;
+  $("#updBtn").onclick = function () { checkUpdate(true); };
 
   $("#addAlarm").onclick = openAlarmForm;
   $("#alarmOk").onclick = function () {
-    closeAlarm(); renderRemind(); renderHome(); renderBadge();
+    closeAlarm(); renderRemind(); renderHome(); renderBadge(); renderTodo();
   };
   $("#alarmSnooze").onclick = function () {
     var ids = state.alarmIds || [], t = Date.now() + 10 * 60000;
     DB.notes.forEach(function (n) {
       if (ids.indexOf(n.id) >= 0) { n.due = t; n.nf = 0; }
+    });
+    DB.todos.forEach(function (x) {
+      if (ids.indexOf(x.id) >= 0) { x.due = t; x.nf = 0; }
     });
     save(); closeAlarm(); renderAll();
     toast("好，10 分钟后再叫你 · " + fmtDue(t));
@@ -4481,6 +4842,37 @@ function openUpgradeSheet() {
     '<div style="margin-top:16px"><button class="btn brand" id="upOk">知道了</button></div>'
   );
   $("#upOk").onclick = closeSheet;
+}
+
+/* ================== 更新 ==================
+   网页版最烦的一种"bug"其实是：手机还在跑旧代码。
+   新版本装好会主动通知页面，这里给一句提示 + 一键刷新。 */
+var swReg = null;
+function offerReload() {
+  if (state.noReload) return;
+  state.noReload = 1;
+  toast("有新版本了，刷一下就是最新的", "刷新", function () {
+    try { location.reload(); } catch (e) {}
+  });
+}
+function checkUpdate(manual) {
+  if (!("serviceWorker" in navigator) || !/^https?:$/.test(location.protocol)) {
+    if (manual) toast("本地文件打开，没有更新通道；换网址打开才会自动更新");
+    return;
+  }
+  navigator.serviceWorker.getRegistration().then(function (reg) {
+    if (!reg) { if (manual) toast("还没装更新通道，重新打开一次就好"); return; }
+    swReg = reg;
+    if (reg.waiting) { offerReload(); return; }
+    var done = false;
+    try { reg.update(); } catch (e) {}
+    setTimeout(function () {
+      if (done) return;
+      done = true;
+      if (reg.waiting || reg.installing) toast("正在下载新版，装好后会提示你刷新");
+      else if (manual) toast("已是最新 v" + APP_VER);
+    }, 2200);
+  }).catch(function () { if (manual) toast("现在连不上，等有网再试"); });
 }
 
 function setupInstall() {
@@ -4591,9 +4983,21 @@ function boot() {
   }
 
   // 只有通过 http(s) 打开时才注册 Service Worker（file:// 下不支持，会报错）
+  var hadSW = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
   if (/^https?:$/.test(location.protocol) && "serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(function () {});
+    navigator.serviceWorker.register("./sw.js").then(function (reg) {
+      swReg = reg;
+      try { reg.update(); } catch (e) {}
+    }).catch(function () {});
+    /* 新版本装好并接管时，主动告诉页面——不然手机上还会一直跑旧代码 */
+    navigator.serviceWorker.addEventListener("message", function (e) {
+      if (!hadSW || state.noReload) return;
+      if (e.data && e.data.type === "activated") offerReload();
+    });
   }
+  ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
+    document.addEventListener(ev, unlockAudio, { passive: true });
+  });
   setupInstall();
 
   checkDue();
@@ -4601,7 +5005,13 @@ function boot() {
   setTimeout(dailyTick, 800);
 
   document.addEventListener("visibilitychange", function () {
-    if (!document.hidden) { checkDue(); renderAll(); dailyTick(); }
+    if (!document.hidden) {
+      unlockAudio();
+      checkDue(); renderAll(); dailyTick();
+      /* 回到前台顺手看一眼有没有新版，半小时最多查一次 */
+      var now = Date.now();
+      if (!state.updAt || now - state.updAt > 30 * 60000) { state.updAt = now; checkUpdate(false); }
+    }
   });
 }
 
