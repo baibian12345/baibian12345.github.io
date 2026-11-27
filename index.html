@@ -156,6 +156,31 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc
 .barrow .track{flex:1;height:7px;background:#F1F3F6;border-radius:99px;overflow:hidden}
 .barrow .fill{height:100%;border-radius:99px;transition:width .4s ease}
 .barrow .vv{width:26px;text-align:right;font-size:12px;color:var(--ink3);flex:0 0 26px}
+
+/* ---- 预算 ---- */
+.brow{margin-top:15px}
+.brow .bhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.brow .bnm{font-size:13.5px;color:var(--ink);font-weight:600}
+.brow .bleft{font-size:12px;color:var(--ink3);white-space:nowrap}
+.brow .bleft.low{color:#B45309;font-weight:600}
+.brow .bleft.over{color:#E11D48;font-weight:700}
+.brow .btrack{height:8px;background:#F1F3F6;border-radius:99px;overflow:hidden;margin:7px 0 5px}
+.brow .bfill{height:100%;border-radius:99px;transition:width .4s ease}
+.brow .bsub{font-size:11.5px;color:var(--ink3)}
+.bsum{display:flex;justify-content:space-between;align-items:baseline;padding:2px 0 6px;border-bottom:1px solid #F4F6F9;margin-bottom:2px}
+.bsum .bl{font-size:12.5px;color:var(--ink3)}
+.bsum .bv{font-size:14px;font-weight:700}
+.bwarn{background:#FFF7ED;border:1px solid #FED7AA;border-radius:14px;padding:11px 13px;margin:0 0 12px;font-size:13px;line-height:1.6;color:#9A3412}
+.bwarn b{color:#C2410C}
+
+/* ---- 闹钟弹层 ---- */
+#alarm{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(15,18,24,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#alarm.on{display:flex}
+.alarmbox{width:100%;max-width:330px;background:#fff;border-radius:22px;padding:20px 18px 16px;text-align:center}
+.alarmbox .atime{font-size:40px;font-weight:700;letter-spacing:-1.5px;line-height:1.05}
+.alarmbox .alab{font-size:12px;color:var(--ink3);letter-spacing:3px;margin:4px 0 14px}
+.alarmbox .aitem{text-align:left;background:#F7F8FA;border-radius:12px;padding:11px 12px;margin-bottom:8px;font-size:14px;line-height:1.5}
+.alarmbox .aitem .ait{font-size:11px;color:var(--ink3);margin-bottom:3px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid #F3F5F8}
 .row:last-child{border-bottom:0}
 .row .rl{font-size:14.5px}
@@ -404,8 +429,11 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
         <div class="box"><div class="l">收入</div><div class="n in" id="mIn">0</div></div>
         <div class="box"><div class="l">结余</div><div class="n" id="mBal">0</div></div>
       </div>
+      <div id="mBudgetWarn"></div>
       <div class="card">
-        <div class="h2" style="margin:0 0 4px">钱花在哪</div>
+        <div class="h2" style="margin:0 0 4px;display:flex;justify-content:space-between;align-items:baseline">
+          <span>钱花在哪</span><span class="link" id="mBudgetSet">设预算</span>
+        </div>
         <div id="mCats"></div>
       </div>
       <div class="h2">近 6 个月支出</div>
@@ -546,9 +574,16 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
     <section class="view" id="v-remind">
       <div class="back" data-back="me">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
-        周期事务与重要日期
+        闹钟 / 提醒
       </div>
-      <button class="btn line" id="addSched" style="padding:11px;font-size:14px;margin-bottom:4px">＋ 周期事务 / 重要日期</button>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="smp" id="addAlarm" style="flex:1;justify-content:center;padding:11px 0">＋ 设个闹钟</button>
+        <button class="smp" id="addSched" style="flex:1;justify-content:center;padding:11px 0">＋ 周期事务</button>
+      </div>
+      <div class="bwarn" style="margin-bottom:12px">
+        应用开着的时候，到点会<b>整屏弹出来</b>。<br>
+        但网页被关掉以后<b>叫不醒手机</b>（苹果不给网页这个权限）。要真正准点响：点开这条提醒 → <b>「加入手机系统日历」</b>，之后由闹钟 App 负责。
+      </div>
       <div id="remindList"></div>
     </section>
 
@@ -676,6 +711,16 @@ nav .badge{position:absolute;top:0;left:50%;margin-left:4px;background:var(--bra
     </section>
   </main>
 
+  <div id="alarm">
+    <div class="alarmbox">
+      <div class="atime" id="alarmTime">00:00</div>
+      <div class="alab">到 点 了</div>
+      <div id="alarmList"></div>
+      <button class="btn brand" id="alarmOk" style="margin-top:6px">知道了</button>
+      <button class="btn line" id="alarmSnooze" style="margin-top:8px">10 分钟后再提醒</button>
+    </div>
+  </div>
+
   <nav>
     <button class="on" data-tab="home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10"/><rect x="9" y="2.5" width="6" height="9" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
@@ -743,7 +788,7 @@ var KW = {
 
 var RKEY = "lifeKeeper.v1";
 var VERKEY = "lifeKeeper.appVer";
-var APP_VER = "2.3.1";
+var APP_VER = "2.4.0";
 var DATA_VER = 3;
 /* 安全版：CSP 里 connect-src 已经是 'none'，浏览器层面禁止一切外发请求。
    这里再加一层代码级的闸，双保险——就算以后 CSP 被谁放宽了，代码也不会去发。
@@ -765,6 +810,8 @@ var MCAT = {
              kw: ["房租","水电","燃气","物业","宽带","话费","取暖","维修","家政","保洁","换锁","装修","超市","日用品","纸巾","洗衣液","米","油","盐","煤气"] },
   med:     { n: "医疗", dir: "out", c: "#BE123C", bg: "#FFE4E6", ic: "医",
              kw: ["医院","挂号","看病","药","买药","体检","牙","门诊","住院","疫苗","理疗","眼镜","口罩","保健品","推拿"] },
+  pet:     { n: "宠物", dir: "out", c: "#0D9488", bg: "#CCFBF1", ic: "宠",
+             kw: ["宠物","猫粮","狗粮","猫砂","铲屎","宠物医院","驱虫","绝育","寄养","撸猫","遛狗","猫","狗"] },
   fun:     { n: "娱乐", dir: "out", c: "#9333EA", bg: "#F3E8FF", ic: "乐",
              kw: ["电影","游戏","演出","门票","旅游","酒店","民宿","客栈","住宿","青旅","唱歌","KTV","会员","视频会员","健身","球","展览","音乐会","剧本杀","露营","摄影"] },
   social:  { n: "人情", dir: "out", c: "#C2410C", bg: "#FFEDD5", ic: "礼",
@@ -784,14 +831,14 @@ var MCAT = {
              kw: ["收到红包","收红包","中奖","压岁钱","红包"] },
   otherIn: { n: "其他", dir: "in",  c: "#6C7380", bg: "#F1F3F6", ic: "他", kw: [] }
 };
-var MOUT = ["food","traffic","shop","home","med","fun","social","study","bill","other"];
+var MOUT = ["food","traffic","shop","home","med","pet","fun","social","study","bill","other"];
 var MIN  = ["salary","side","invest","gift","otherIn"];
 function mcat(key) { return MCAT[key] || MCAT.other; }
 
 var DB = null;
 var state = { tab: "home", filter: "all", q: "", sheetId: null, pinBuf: "", pinMode: "unlock", toastTimer: null,
               mPeriod: "month", kbQ: "", kbTag: "", topicTopic: "", topicTouched: false,
-              topicView: "time" };
+              topicView: "time", alarmIds: [] };
 
 /* ================== 工具 ================== */
 function $(s, r) { return (r || document).querySelector(s); }
@@ -1569,26 +1616,9 @@ function renderMoney() {
   be.textContent = (bal < 0 ? "-¥" : "¥") + fmtMoney(bal);
   be.style.color = bal < 0 ? "#E11D48" : "#0F9D58";
 
-  /* 分类占比 */
-  var by = {};
-  outs.forEach(function (x) { by[x.cat] = (by[x.cat] || 0) + x.amt; });
-  var arr = Object.keys(by).map(function (k) { return { k: k, v: by[k] }; })
-    .sort(function (a, b) { return b.v - a.v; });
-  var cbox = $("#mCats");
-  if (!arr.length) {
-    cbox.innerHTML = '<div class="pmeta" style="padding:6px 0">这个' + (p === "year" ? "年" : "月") + '还没记过支出</div>';
-  } else {
-    var mx = arr[0].v || 1;
-    cbox.innerHTML = arr.map(function (x) {
-      var m = mcat(x.k);
-      var pct = Math.max(5, Math.round(x.v / mx * 100));
-      return '<div class="barrow">' +
-        '<div class="nm">' + m.n + "</div>" +
-        '<div class="track"><div class="fill" style="width:' + pct + "%;background:" + m.c + '"></div></div>' +
-        '<div style="flex:0 0 56px;text-align:right;font-size:11.5px;color:#6C7380">' + fmtMoney(x.v) + "</div>" +
-        "</div>";
-    }).join("");
-  }
+  /* 分类占比 / 预算 */
+  renderMoneyCats(p, outs);
+  renderBudgetWarn(p);
 
   /* 近 6 个月支出趋势 */
   var tr = [], now = new Date();
@@ -1642,6 +1672,225 @@ function renderMoney() {
   });
   if (list.length > 80) html += '<div class="pmeta" style="text-align:center;padding:8px 0">只显示最近 80 笔</div>';
   $("#mList").innerHTML = html;
+}
+
+/* ================== 预算 ================== */
+function monthKey() { var d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1); }
+
+/* 只留有效的：分类存在、金额 > 0 */
+function budgetMap() {
+  var b = DB.settings.budgets || {}, out = {};
+  MOUT.forEach(function (k) { if (Number(b[k]) > 0) out[k] = Math.round(Number(b[k]) * 100) / 100; });
+  return out;
+}
+function budgetOf(cat) { var b = budgetMap(); return b[cat] || 0; }
+function budgetUsed(cat) {
+  var s = 0;
+  DB.money.forEach(function (x) {
+    if (x.dir === "out" && x.cat === cat && inPeriod(x.ts, "month")) s += Number(x.amt) || 0;
+  });
+  return s;
+}
+
+/* 账本页「钱花在哪」：设了预算就按预算画，没设的仍按占比 */
+function renderMoneyCats(p, outs) {
+  var box = $("#mCats");
+  var by = {};
+  outs.forEach(function (x) { by[x.cat] = (by[x.cat] || 0) + x.amt; });
+
+  var bm = p === "month" ? budgetMap() : {};
+  var hasB = Object.keys(bm).length > 0;
+
+  if (!Object.keys(by).length && !hasB) {
+    box.innerHTML = '<div class="pmeta" style="padding:6px 0">这个' + (p === "year" ? "年" : "月") + '还没记过支出</div>';
+    return;
+  }
+
+  var html = "";
+  if (hasB) {
+    var tb = 0, ua = 0;
+    Object.keys(bm).forEach(function (k) { tb += bm[k]; ua += budgetUsed(k); });
+    var left = tb - ua;
+    html += '<div class="bsum"><span class="bl">本月预算 ¥' + fmtMoney(tb) + " · 已用 ¥" + fmtMoney(ua) + '</span>' +
+      '<span class="bv" style="color:' + (left < 0 ? "#E11D48" : left <= tb * 0.2 ? "#B45309" : "#0F9D58") + '">' +
+      (left < 0 ? "超 ¥" : "剩 ¥") + fmtMoney(Math.abs(left)) + "</span></div>";
+  }
+
+  /* 设了预算的排在前面，最紧张的排最上 */
+  var rows = Object.keys(bm).map(function (k) {
+    var b = bm[k], u = budgetUsed(k);
+    return { k: k, b: b, u: u, left: b - u, ratio: b ? u / b : 0 };
+  }).sort(function (a, b) { return b.ratio - a.ratio; });
+
+  rows.forEach(function (r) {
+    var m = mcat(r.k);
+    var pctRaw = Math.round(r.ratio * 100);
+    var pct = Math.min(100, Math.max(2, pctRaw));
+    var low = r.left >= 0 && r.left <= r.b * 0.2;
+    var color = r.left < 0 ? "#E11D48" : low ? "#EF9F27" : m.c;
+    var cls = r.left < 0 ? "over" : low ? "low" : "";
+    html += '<div class="brow"><div class="bhead"><span class="bnm">' + m.n + '</span>' +
+      '<span class="bleft ' + cls + '">' + (r.left < 0 ? "超 ¥" + fmtMoney(-r.left) : "剩 ¥" + fmtMoney(r.left)) + "</span></div>" +
+      '<div class="btrack"><div class="bfill" style="width:' + pct + "%;background:" + color + '"></div></div>' +
+      '<div class="bsub">已用 ¥' + fmtMoney(r.u) + " / ¥" + fmtMoney(r.b) + (pctRaw > 100 ? " · " + pctRaw + "%" : "") + "</div></div>";
+  });
+
+  var others = Object.keys(by).filter(function (k) { return !bm[k]; })
+    .map(function (k) { return { k: k, u: by[k] }; })
+    .sort(function (a, b) { return b.u - a.u; });
+  if (others.length) {
+    if (rows.length) html += '<div class="h2" style="margin:16px 0 2px;font-size:12.5px;color:#A2A8B3">没设预算的</div>';
+    var mx = others[0].u || 1;
+    others.forEach(function (o) {
+      var m = mcat(o.k);
+      html += '<div class="barrow"><div class="nm">' + m.n + "</div>" +
+        '<div class="track"><div class="fill" style="width:' + Math.max(4, Math.round(o.u / mx * 100)) + "%;background:" + m.c + '"></div></div>' +
+        '<div class="vv" style="width:56px;flex:0 0 56px">' + fmtMoney(o.u) + "</div></div>";
+    });
+  }
+  box.innerHTML = html;
+}
+
+/* 页头那条橙色提醒：快用完 / 超了 */
+function renderBudgetWarn(p) {
+  var box = $("#mBudgetWarn");
+  if (!box) return;
+  if (p !== "month") { box.innerHTML = ""; return; }
+  var bm = budgetMap(), rows = [];
+  Object.keys(bm).forEach(function (k) {
+    var u = budgetUsed(k), b = bm[k];
+    if (u >= b) rows.push({ k: k, over: true, u: u, b: b });
+    else if (u >= b * 0.8) rows.push({ k: k, over: false, u: u, b: b });
+  });
+  box.innerHTML = rows.map(function (r) {
+    return '<div class="bwarn">' + (r.over ? "⛔ " : "⚠️ ") + "<b>" + mcat(r.k).n + "</b>" +
+      (r.over ? " 超预算了，超 ¥" + fmtMoney(r.u - r.b) : " 快用完了，只剩 ¥" + fmtMoney(r.b - r.u)) +
+      "（已用 ¥" + fmtMoney(r.u) + " / ¥" + fmtMoney(r.b) + "）</div>";
+  }).join("");
+}
+
+/* 记完一笔就看一眼：超了/快用完，每个分类每月只吵一次 */
+function budgetCheck(cat) {
+  var b = budgetOf(cat);
+  if (!b) return null;
+  var used = budgetUsed(cat);
+  var key = monthKey() + ":" + cat;
+  var w = DB.settings.budgetWarned || (DB.settings.budgetWarned = {});
+
+  if (used >= b) {
+    if (w[key] === "over") return null;
+    w[key] = "over"; save();
+    toast("⛔ " + mcat(cat).n + "超预算了：已花 ¥" + fmtMoney(used) + "，超 ¥" + fmtMoney(used - b), "看看", function () { go("money"); });
+    return "over";
+  }
+  if (used >= b * 0.8) {
+    if (w[key]) return null;
+    w[key] = "low"; save();
+    toast("⚠️ " + mcat(cat).n + "快用完了，还剩 ¥" + fmtMoney(b - used) + "（预算 ¥" + fmtMoney(b) + "）", "看看", function () { go("money"); });
+    return "low";
+  }
+  return null;
+}
+
+function openBudgetSheet() {
+  var bm = DB.settings.budgets || {};
+  var h = '<h3>每月每类花多少</h3><div class="sb">填数字就是上限；留空 = 不限。只算支出，每月自动归零重算</div>';
+  MOUT.forEach(function (k) {
+    var m = MCAT[k];
+    var v = Number(bm[k]) > 0 ? bm[k] : "";
+    h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">' +
+      '<div style="width:30px;height:30px;border-radius:9px;background:' + m.bg + ";color:" + m.c +
+        ';display:grid;place-items:center;font-size:12.5px;font-weight:600;flex:0 0 30px">' + m.ic + "</div>" +
+      '<div style="flex:0 0 46px;font-size:13.5px">' + m.n + "</div>" +
+      '<input class="field" id="bd_' + k + '" inputmode="decimal" placeholder="不限" value="' + v + '" style="flex:1;padding:9px 11px">' +
+      "</div>";
+  });
+  h += '<div style="margin-top:16px"><button class="btn brand" id="bdSave">保存</button></div>';
+  openSheet(h);
+
+  $("#bdSave").onclick = function () {
+    var nb = {};
+    MOUT.forEach(function (k) {
+      var el = $("#bd_" + k);
+      if (!el) return;
+      var v = parseFloat(String(el.value || "").replace(/[^\d.]/g, ""));
+      if (v > 0) nb[k] = Math.round(v * 100) / 100;
+    });
+    DB.settings.budgets = nb;
+    DB.settings.budgetWarned = {};   /* 改了预算，重新给一次提醒机会 */
+    save(); closeSheet(); renderMoney(); renderAll();
+    var n = Object.keys(nb).length;
+    toast(n ? "已设好 " + n + " 个分类的预算" : "预算已清空");
+  };
+}
+
+/* ================== 闹钟 ================== */
+/* 响铃那一刻只该看到「关火」，不是「明天早上八点提醒我关火」。
+   说的句子命中「提醒我」才剥前缀，没命中就原样显示，不瞎猜。 */
+function alarmLabel(t) {
+  var s = String(t || "").trim();
+  var m = s.match(/^.{0,14}?提醒我[:：,，\s]*([\s\S]{2,})$/);
+  return m ? m[1].trim() : s;
+}
+
+function openAlarm(items) {
+  if (!items || !items.length) return;
+  state.alarmIds = items.map(function (n) { return n.id; });
+  $("#alarmTime").textContent = hhmm(Date.now());
+  $("#alarmList").innerHTML = items.map(function (n) {
+    var c = CATS[n.c] || CATS.life;
+    return '<div class="aitem"><div class="ait">' + fmtStamp(n.due) + " · " + c.n + "</div>" + esc(alarmLabel(n.t)) + "</div>";
+  }).join("");
+  $("#alarmSnooze").style.display = items.length ? "" : "none";
+  $("#alarm").classList.add("on");
+  try { if (navigator.vibrate) navigator.vibrate([240, 120, 240]); } catch (e) {}
+}
+function closeAlarm() {
+  $("#alarm").classList.remove("on");
+  state.alarmIds = [];
+}
+
+/* 手动设一个闹钟（不想用嘴说的时候） */
+function openAlarmForm() {
+  var d = new Date(Date.now() + 30 * 60000);
+  d.setSeconds(0, 0);
+  var v = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  openSheet(
+    '<h3>设个闹钟</h3><div class="sb">到点会整屏弹出来，还会响一下（支持的手机）</div>' +
+    '<div class="lab">提醒我干什么</div>' +
+    '<input class="field" id="alWhat" placeholder="例：关火 / 吃药 / 接孩子">' +
+    '<div class="lab">什么时候</div>' +
+    '<input class="field" id="alWhen" type="datetime-local" value="' + v + '">' +
+    '<div class="lab">快选</div><div class="catpick" id="alQuick">' +
+      [10, 30, 60, 120].map(function (m) {
+        return '<button data-m="' + m + '">' + (m < 60 ? m + " 分钟后" : m / 60 + " 小时后") + "</button>";
+      }).join("") +
+    "</div>" +
+    '<div style="margin-top:18px"><button class="btn brand" id="alSave">设好</button></div>'
+  );
+  $$("#alQuick button").forEach(function (b) {
+    b.onclick = function () {
+      var mm = +b.getAttribute("data-m");
+      var t = new Date(Date.now() + mm * 60000);
+      t.setSeconds(0, 0);
+      $("#alWhen").value = new Date(t - t.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      $$("#alQuick button").forEach(function (x) { x.classList.remove("on"); });
+      b.classList.add("on");
+    };
+  });
+  $("#alSave").onclick = function () {
+    var t = ($("#alWhat").value || "").trim();
+    if (!t) { toast("先写一句提醒什么"); return; }
+    var wv = $("#alWhen").value;
+    if (!wv) { toast("选个时间"); return; }
+    var due = new Date(wv).getTime();
+    if (isNaN(due)) { toast("时间看不懂，重选一下"); return; }
+    if (due <= Date.now()) { toast("这个时间已经过了"); return; }
+    var n = addNote(t, { due: due });
+    closeSheet(); renderAll();
+    toast("闹钟设好了 · " + fmtDue(due), "看看", function () { go("remind"); });
+    return n;
+  };
 }
 
 /* ================== 待办渲染 ================== */
@@ -2076,6 +2325,7 @@ function openMoneySheet(id) {
       save();
     } else {
       addMoney({ amt: a, dir: dir, cat: cat, t: nt || MCAT[cat].n });
+      if (dir === "out") { try { budgetCheck(cat); } catch (e) {} }
     }
     closeSheet(); renderAll();
     toast(rec ? "已更新" : "记下了 · " + MCAT[cat].n + " " + (dir === "in" ? "+" : "−") + fmtMoney(amt));
@@ -3354,15 +3604,13 @@ function checkDue() {
     if (n.due && !n.done && !n.nf && n.due <= now) { n.nf = 1; hit.push(n); }
   });
   if (!hit.length) return;
-  save(); renderRemind(); renderHome();
+  save(); renderRemind(); renderHome(); renderBadge();
   hit.forEach(function (n) {
     if (DB.settings.notify && ("Notification" in window) && Notification.permission === "granted") {
-      try { new Notification("到点了：" + CATS[n.c].n, { body: n.t, tag: n.id }); } catch (e) {}
+      try { new Notification("到点了：" + (CATS[n.c] || CATS.life).n, { body: n.t, tag: n.id }); } catch (e) {}
     }
   });
-  toast("⏰ " + (hit.length > 1 ? hit.length + " 件事到点了" : hit[0].t.slice(0, 18)), "查看", function () {
-    go("remind");
-  });
+  openAlarm(hit);   /* 整屏弹出来，不是角落里那条小提示 */
 }
 
 /* ================== 密码锁 ================== */
@@ -3685,6 +3933,7 @@ function commitDraft() {
   if (draft.money) {
     var rec = addMoney({ amt: draft.money.amt, dir: draft.money.dir, cat: draft.money.cat, t: v });
     resetDraft(); renderAll();
+    try { budgetCheck(rec.cat); } catch (e) {}
     if (rec) {
       var m = mcat(rec.cat);
       toast("记下 " + m.n + " " + (rec.dir === "in" ? "+" : "−") + "¥" + fmtMoney(rec.amt), "改一下", function () {
@@ -3726,6 +3975,7 @@ function quickSay(text, mode) {
     if (p) {
       var rec = addMoney({ amt: p.amt, dir: p.dir, cat: p.cat, t: v });
       renderMoney(); renderBadge();
+      try { budgetCheck(rec.cat); } catch (e) {}
       var m = mcat(rec.cat);
       toast("记下 " + m.n + " " + (rec.dir === "in" ? "+" : "−") + "¥" + fmtMoney(rec.amt), "改一下", function () {
         openMoneySheet(rec.id);
@@ -3761,6 +4011,7 @@ function quickSay(text, mode) {
     var r2 = addMoney({ amt: p2.amt, dir: p2.dir, cat: p2.cat, t: v }, 0, tpGo);
     renderAll(); if (state.tab === "topic") renderTopic();
     scrollDiaryEnd();
+    try { budgetCheck(r2.cat); } catch (e) {}
     var m2 = mcat(r2.cat);
     toast("记了一笔 " + m2.n + " " + (r2.dir === "in" ? "+" : "−") + "¥" + fmtMoney(r2.amt) + "，也算进这一篇", "改一下", function () {
       openMoneySheet(r2.id);
@@ -3838,6 +4089,7 @@ function bind() {
     b.onclick = function () { state.mPeriod = b.getAttribute("data-p"); renderMoney(); };
   });
   $("#mAdd").onclick = function () { openMoneySheet(null); };
+  $("#mBudgetSet").onclick = openBudgetSheet;
   $("#mList").addEventListener("click", function (e) {
     var row = e.target.closest ? e.target.closest("[data-m]") : null;
     if (row) openMoneySheet(row.getAttribute("data-m"));
@@ -4106,7 +4358,8 @@ function bind() {
       closeSheet(); renderAll();
       toast("已清空");
     };
-  $("#clrNo").onclick = closeSheet;
+    $("#clrNo").onclick = closeSheet;
+  };
 
   /* 截图：<label for> 原生触发文件选择器，iOS 主屏里也能用 */
   $("#imgInput").onchange = function () {
@@ -4140,6 +4393,18 @@ function bind() {
 
   $("#upBtn").onclick = openUpgradeSheet;
 
+  $("#addAlarm").onclick = openAlarmForm;
+  $("#alarmOk").onclick = function () {
+    closeAlarm(); renderRemind(); renderHome(); renderBadge();
+  };
+  $("#alarmSnooze").onclick = function () {
+    var ids = state.alarmIds || [], t = Date.now() + 10 * 60000;
+    DB.notes.forEach(function (n) {
+      if (ids.indexOf(n.id) >= 0) { n.due = t; n.nf = 0; }
+    });
+    save(); closeAlarm(); renderAll();
+    toast("好，10 分钟后再叫你 · " + fmtDue(t));
+  };
   $("#addSched").onclick = function () { openSchedSheet(null); };
 
   $("#shareBtn").onclick = function () {    openSheet(
@@ -4196,7 +4461,6 @@ function openCitySheet() {
       toast("已切到 " + DB.settings.city);
     };
   });
-};
 }
 
 /* ================== 启动 ================== */
